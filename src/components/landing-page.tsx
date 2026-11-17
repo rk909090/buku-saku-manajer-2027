@@ -3,7 +3,9 @@ import Image from "next/image";
 // Foto asli buku (dipotret pemilik; dikompres WebP — lihat README "Foto buku").
 import coverPhoto from "../../public/images/buku/sampul-foto.webp";
 import coverFront from "../../public/images/buku/sampul-depan.jpg";
-import stackPhoto from "../../public/images/buku/tumpukan-buku.webp";
+import stackPhoto from "../../public/images/buku/tumpukan-buku-tegak.webp";
+import readingPhoto from "../../public/images/buku/membaca-bab-goal.webp";
+import kinerjaDivider from "../../public/images/buku/pembatas-mengukur-kinerja.webp";
 import isiGoal from "../../public/images/buku/isi-bab2-hal-70-71.webp";
 import isiGoalPage from "../../public/images/buku/isi-bab2-hal-70.webp";
 import isiDelegasi from "../../public/images/buku/isi-bab4-hal-116-117.webp";
@@ -12,8 +14,6 @@ import isiKontrol from "../../public/images/buku/isi-bab3-hal-138-139.webp";
 import isiKontrolPage from "../../public/images/buku/isi-bab3-hal-138.webp";
 import isiKinerja from "../../public/images/buku/isi-bab5-hal-192-193.webp";
 import isiKinerjaPage from "../../public/images/buku/isi-bab5-hal-192.webp";
-import interior from "../../public/images/bsm-isi-smart.webp";
-import toc from "../../public/images/bsm-daftar-isi.webp";
 import authorPhoto from "../../public/images/armala-pegang-buku-saku.jpeg";
 import logo from "../../public/images/logo-hpi.png";
 import {
@@ -184,7 +184,7 @@ function SiteHeader() {
 function Hero({ variant, promo }: { variant: HeadlineVariant; promo: LandingPromo | null }) {
   return (
     <section className="hero-bg relative overflow-hidden text-white">
-      <Container className="grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 lg:py-24">
+      <Container className="grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:py-24">
         <div className="text-center lg:text-left">
           <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
             <p className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 px-3 py-1 text-xs font-extrabold tracking-wide text-navy-950 uppercase">
@@ -209,13 +209,13 @@ function Hero({ variant, promo }: { variant: HeadlineVariant; promo: LandingProm
           </div>
         </div>
 
-        <div className="relative mx-auto w-full max-w-[18rem] sm:max-w-xs lg:max-w-[23rem]">
+        <div className="relative mx-auto w-full max-w-[19rem] sm:max-w-sm lg:max-w-[32rem]">
           <div aria-hidden="true" className="absolute -inset-5 rounded-[2.5rem] bg-gold-500/25 blur-3xl" />
           <Image
             src={coverPhoto}
             alt="Foto asli Buku Saku Manajer Edisi Kedua karya Armala terbitan Human Plus Institute, dengan beberapa eksemplar terbungkus plastik di belakangnya"
             className="relative h-auto w-full rounded-[2rem] shadow-[0_35px_60px_-15px_rgb(0_0_0/0.75)] ring-1 ring-white/15"
-            sizes="(max-width: 640px) 288px, (max-width: 1024px) 320px, 368px"
+            sizes="(max-width: 640px) 304px, (max-width: 1024px) 384px, 512px"
             placeholder="blur"
             preload
           />
@@ -359,11 +359,13 @@ function AboutBook() {
       <Container className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div className="relative mx-auto w-full max-w-md">
           <div aria-hidden="true" className="absolute inset-0 rounded-full bg-gold-500/20 blur-3xl" />
+          {/* Foto potret 3:4 — tingginya setara blok teks di kanan (desktop). */}
           <Image
-            src={interior}
-            alt="Halaman isi Buku Saku Manajer yang membahas penetapan sasaran SMART"
-            className="relative h-auto w-full rounded-3xl shadow-2xl ring-1 ring-white/10"
-            sizes="(max-width: 640px) 100vw, 448px"
+            src={readingPhoto}
+            alt="Foto asli Buku Saku Manajer yang sedang dibaca, terbuka di halaman pembatas bab Menentukan Goal (Sasaran & Target)"
+            className="relative h-auto w-full rounded-[2rem] shadow-2xl ring-1 ring-white/10"
+            sizes="(max-width: 640px) 92vw, 448px"
+            placeholder="blur"
           />
         </div>
 
@@ -503,10 +505,11 @@ function Chapters() {
 
         <div className="mt-16 grid items-center gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
           <Image
-            src={toc}
-            alt="Daftar isi Buku Saku Manajer"
-            className={`mx-auto h-auto w-full max-w-sm rounded-3xl ${cardShadow}`}
-            sizes="(max-width: 640px) 100vw, 384px"
+            src={kinerjaDivider}
+            alt="Foto asli halaman pembatas bab Mengukur Kinerja di Buku Saku Manajer"
+            className={`mx-auto h-auto w-full max-w-sm rounded-[2rem] ${cardShadow}`}
+            sizes="(max-width: 640px) 92vw, 384px"
+            placeholder="blur"
           />
           <figure className="relative">
             <svg viewBox="0 0 32 32" aria-hidden="true" className="size-12 text-gold-500">
@@ -736,12 +739,12 @@ function Offer({ promo }: { promo: LandingPromo | null }) {
       <Container>
         <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-navy-900 text-white shadow-2xl">
           <div aria-hidden="true" className="absolute -top-24 -left-24 size-72 rounded-full bg-gold-500/20 blur-3xl" />
-          <div className="relative grid items-center gap-8 p-6 sm:p-10 md:grid-cols-[0.9fr_1.1fr] lg:gap-12 lg:p-12">
+          <div className="relative grid items-center gap-8 p-6 sm:p-10 md:grid-cols-[0.95fr_1.05fr] lg:gap-12 lg:p-12">
             <Image
               src={stackPhoto}
-              alt="Foto asli beberapa eksemplar Buku Saku Manajer Edisi Kedua di atas meja kayu"
-              className="mx-auto h-auto w-full max-w-sm rounded-3xl object-cover ring-1 ring-white/10"
-              sizes="(max-width: 768px) 92vw, 420px"
+              alt="Foto asli empat eksemplar Buku Saku Manajer Edisi Kedua di atas meja kayu"
+              className="mx-auto h-auto w-full max-w-sm rounded-[2rem] shadow-2xl ring-1 ring-white/10 md:max-w-none"
+              sizes="(max-width: 768px) 92vw, 440px"
               placeholder="blur"
             />
             <div>
