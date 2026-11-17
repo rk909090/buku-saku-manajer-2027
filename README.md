@@ -40,3 +40,13 @@ Lihat [`.env.example`](.env.example). Di Hostinger diisi lewat hPanel → Node.j
 ## Deploy
 
 Hosting Node.js di Hostinger (dibutuhkan untuk proxy A/B dan API; hosting statis tidak cukup).
+
+## SEO, AEO & GEO
+
+- Metadata: `src/app/layout.tsx` + konstanta di `src/lib/seo.ts` (title ≤60, description ≤155, canonical, robots, Open Graph, Twitter).
+- Gambar bagikan 1200×630: `src/app/opengraph-image.tsx` (dibuat saat build dari sampul).
+- Structured data (JSON-LD `@graph`): `src/lib/structured-data.ts` — WebSite, WebPage, Organization, Person, Book/Product (+2 Offer), FAQPage. Hanya fakta dari sumber; sengaja tanpa rating/ulasan/ISBN.
+- `/llms.txt` (ringkasan faktual untuk LLM), `/sitemap.xml` (+ image sitemap), `/robots.txt`, `/favicon.ico`.
+- Bot & crawler selalu mendapat varian kontrol (A) tanpa cookie (`src/proxy.ts`).
+- IndexNow: kunci di `src/lib/seo.ts`, file verifikasi `public/<kunci>.txt`.
+- Verifikasi: Google Search Console (CNAME DNS) dan Bing Webmaster (meta `msvalidate.01`).

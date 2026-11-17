@@ -30,6 +30,12 @@ export function proxy(request: NextRequest) {
 
   const secure = request.nextUrl.protocol === "https:";
 
+  // Bot / crawler (mesin pencari, AI, pratinjau link) selalu mendapat varian kontrol tanpa
+  // cookie: judul yang diindeks stabil dan bot tidak ikut sebagai peserta A/B test.
+  if (BOT_RE.test(request.headers.get("user-agent") ?? "")) {
+    return rewriteTo(request, AB_VARIANTS[0]);
+  }
+
   // QA: /?hl=b memaksa varian tanpa menyentuh cookie varian.
   const forced = request.nextUrl.searchParams.get(AB_QUERY_PARAM);
   if (isAbVariant(forced)) {
@@ -67,6 +73,8 @@ function withVisitorId(request: NextRequest, response: NextResponse, secure: boo
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const BOT_RE =
+  /bot\b|bot\/|crawl|spider|slurp|googleother|google-extended|chatgpt-user|facebookexternalhit|whatsapp|telegram|lighthouse|headlesschrome|curl\/|wget|python-requests/i;
 
 function rewriteTo(request: NextRequest, variant: AbVariantId) {
   const url = request.nextUrl.clone();

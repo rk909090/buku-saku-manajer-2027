@@ -12,7 +12,7 @@ export default function AbPreviewPage() {
   return (
     <main className="min-h-dvh bg-cream px-4 py-12 sm:px-8">
       <div className="mx-auto max-w-4xl">
-        <p className="text-sm font-semibold tracking-wide text-gold-600 uppercase">Internal · tidak diindeks</p>
+        <p className="text-sm font-semibold tracking-wide text-gold-700 uppercase">Internal · tidak diindeks</p>
         <h1 className="mt-2 font-display text-4xl font-bold text-navy-900">Pratinjau A/B Headline Hero</h1>
         <p className="mt-4 leading-relaxed text-ink/80">
           Eksperimen <code className="rounded bg-white px-1.5 py-0.5 text-sm">{AB_EXPERIMENT}</code>. Pengunjung{" "}

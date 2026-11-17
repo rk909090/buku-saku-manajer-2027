@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
 import { GOOGLE_TAG_ID, googleTagInitScript } from "@/lib/analytics";
+import { AUTHOR, OG_DESCRIPTION, ORGANIZATION, SEO_DESCRIPTION, SEO_TITLE, SITE_NAME, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 const oswald = Oswald({
@@ -16,20 +17,35 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://bsm.humplus.com"),
-  // Judul & deskripsi diambil dari meta halaman Scalev (humanplusinstitute.myscalev.com/bukusakumanajer)
-  title: "Buku Saku Manajer Edisi Kedua | Panduan Praktis Manajemen — Human Plus Institute",
-  description:
-    "Panduan praktis untuk Supervisor, Manager, Direktur, dan Business Owner: 6 bab yang menjawab masalah nyata manajer sehari-hari. Buku Saku Manajer Edisi Kedua karya Armala.",
-  openGraph: {
-    title: "Buku Saku Manajer",
-    description:
-      "Pelajari cara mengelola pekerjaan, tim, dan bisnis secara lebih terarah melalui framework G.P.E.R. dalam Buku Saku Manajer karya Armala.",
-    images: [{ url: "/images/bsm-mockup.webp", width: 560, height: 560 }],
-    locale: "id_ID",
-    type: "website",
+  metadataBase: new URL(SITE_URL),
+  title: SEO_TITLE,
+  description: SEO_DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [{ name: AUTHOR.name }],
+  creator: AUTHOR.name,
+  publisher: ORGANIZATION.legalName,
+  category: "Buku manajemen",
+  alternates: { canonical: "/" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
   },
-  // Google Search Console diverifikasi lewat DNS TXT (bsm.humplus.com), jadi tidak butuh meta di sini.
+  // Gambar OG/Twitter dibuat oleh src/app/opengraph-image.tsx & twitter-image.tsx (1200×630).
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: `${SITE_NAME} — ${ORGANIZATION.name}`,
+    title: SEO_TITLE,
+    description: OG_DESCRIPTION,
+    locale: "id_ID",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SEO_TITLE,
+    description: OG_DESCRIPTION,
+  },
+  // Google Search Console: diverifikasi lewat DNS (CNAME di bsm.humplus.com), tidak butuh meta.
   verification: {
     other: { "msvalidate.01": "562657F865C47C6F67C9A5FFBB31D2B4" }, // Bing Webmaster Tools
   },

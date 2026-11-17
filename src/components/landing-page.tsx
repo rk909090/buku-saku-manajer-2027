@@ -48,8 +48,8 @@ import { Carousel } from "@/components/interactive";
 import { AbTracker } from "@/components/ab-tracker";
 import type { HeadlineVariant } from "@/lib/content";
 import { AB_EXPERIMENT, AB_QUERY_PARAM } from "@/lib/ab-config";
-
-const plain = (s: string) => s.replace(/_\*\*|\*\*_|\*\*/g, "").replace(/(^|[\s(“‘])_|_(?=[\s.,)”’]|$)/g, "$1");
+import { buildStructuredData } from "@/lib/structured-data";
+import { BOOK_FACTS } from "@/lib/seo";
 
 function abInitScript(variantId: string) {
   const exp = JSON.stringify(AB_EXPERIMENT);
@@ -65,19 +65,13 @@ function abInitScript(variantId: string) {
 
 /** Seluruh landing page. Hanya headline hero yang berbeda per varian A/B. */
 export function LandingPage({ variant }: { variant: HeadlineVariant }) {
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: plain(f.a) },
-    })),
-  };
+  // "<" di-escape agar teks JSON tidak bisa menutup tag <script>.
+  const jsonLd = JSON.stringify(buildStructuredData()).replace(/</g, "\\u003c");
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
+      {/* Structured data: WebSite, WebPage, Organization, Person, Book/Product, FAQPage */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       {/* Data varian A/B di dataLayer (untuk GTM). GA4 memakai gtag('set') di <head>. */}
       <script dangerouslySetInnerHTML={{ __html: abInitScript(variant.id) }} />
       <SiteHeader />
@@ -111,7 +105,7 @@ function Eyebrow({ children, tone = "light" }: { children: ReactNode; tone?: "li
   return (
     <p
       className={`font-display text-sm font-semibold tracking-[0.22em] uppercase ${
-        tone === "dark" ? "text-gold-400" : "text-gold-600"
+        tone === "dark" ? "text-gold-400" : "text-gold-700"
       }`}
     >
       {children}
@@ -168,7 +162,7 @@ function Hero({ variant }: { variant: HeadlineVariant }) {
   return (
     <section className="hero-bg relative overflow-hidden text-white">
       <Container className="grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 lg:py-24">
-        <div className="fade-up text-center lg:text-left">
+        <div className="text-center lg:text-left">
           <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
             <p className="inline-flex items-center gap-1.5 rounded-full bg-gold-500 px-3 py-1 text-xs font-extrabold tracking-wide text-navy-950 uppercase">
               <StarIcon className="size-3.5" />
@@ -191,7 +185,7 @@ function Hero({ variant }: { variant: HeadlineVariant }) {
           </div>
         </div>
 
-        <div className="fade-up-delay relative mx-auto w-full max-w-[20rem] sm:max-w-sm lg:max-w-[25rem]">
+        <div className="relative mx-auto w-full max-w-[20rem] sm:max-w-sm lg:max-w-[25rem]">
           <div aria-hidden="true" className="absolute inset-x-6 bottom-2 h-10 rounded-[50%] bg-black/60 blur-2xl" />
           <Image
             src={cover}
@@ -222,11 +216,11 @@ function Reality() {
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           {reality.levels.map((l, i) => (
             <article key={l.level} className={`relative rounded-3xl border border-navy-900/8 bg-white p-7 ${cardShadow}`}>
-              <span className="font-display text-5xl font-bold text-gold-500/25" aria-hidden="true">
+              <span className="font-display text-5xl font-bold text-gold-600" aria-hidden="true">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <h3 className="mt-2 font-display text-2xl font-bold text-navy-900">{l.level}</h3>
-              <p className="mt-1 text-sm font-semibold tracking-wide text-gold-600">{l.role}</p>
+              <p className="mt-1 text-sm font-semibold tracking-wide text-gold-700">{l.role}</p>
               <p className="mt-4 leading-relaxed text-ink/85">{l.text}</p>
             </article>
           ))}
@@ -390,11 +384,11 @@ function Chapters() {
               <h3 className="mt-4 font-display text-2xl leading-tight font-bold text-navy-900 sm:text-[1.7rem]">{ch.title}</h3>
 
               <div className="mt-5 rounded-2xl bg-promo/[0.06] p-4 ring-1 ring-promo/15">
-                <p className="text-xs font-bold tracking-wide text-promo uppercase">{chaptersIntro.problemLabel}</p>
+                <p className="text-xs font-bold tracking-wide text-promo-dark uppercase">{chaptersIntro.problemLabel}</p>
                 <p className="mt-1.5 leading-relaxed text-ink/85 italic">{ch.problem}</p>
               </div>
 
-              <p className="mt-6 text-xs font-bold tracking-wide text-gold-600 uppercase">{chaptersIntro.solutionLabel}</p>
+              <p className="mt-6 text-xs font-bold tracking-wide text-gold-700 uppercase">{chaptersIntro.solutionLabel}</p>
               <ul className="mt-3 space-y-3">
                 {ch.topics.map((t) => (
                   <li key={t.title} className="flex gap-3">
@@ -425,7 +419,7 @@ function Chapters() {
             <blockquote className="mt-4 font-display text-2xl leading-snug font-semibold text-navy-900 sm:text-3xl">
               {authorQuote.quote}
             </blockquote>
-            <figcaption className="mt-5 font-semibold text-gold-600">{authorQuote.cite}</figcaption>
+            <figcaption className="mt-5 font-semibold text-gold-700">{authorQuote.cite}</figcaption>
             <div className="mt-8">
               <CtaPair placement="chapters" />
             </div>
@@ -453,7 +447,7 @@ function Readers() {
                 <UserIcon className="size-6" />
               </span>
               <h3 className="mt-5 font-display text-xl font-bold text-navy-900">{g.level}</h3>
-              <p className="mt-1 text-sm font-semibold text-gold-600">{g.role}</p>
+              <p className="mt-1 text-sm font-semibold text-gold-700">{g.role}</p>
               <p className="mt-3 leading-relaxed text-ink/85">{g.text}</p>
             </article>
           ))}
@@ -517,7 +511,7 @@ function Author() {
         <div>
           <Eyebrow>{author.eyebrow}</Eyebrow>
           <SectionHeading className="mt-3">
-            Siapa <span className="text-gold-600">ARMALA</span>?
+            Siapa <span className="text-gold-700">ARMALA</span>?
           </SectionHeading>
           <p className="mt-3 text-xl font-semibold text-navy-800">{author.subheading}</p>
 
@@ -661,14 +655,18 @@ function Offer() {
                 <PriceTag tone="dark" />
               </div>
 
-              <ul className="mt-6 space-y-3">
-                {aboutBook.features.map((f) => (
-                  <li key={f} className="flex gap-3 text-white/80">
-                    <CheckIcon className="mt-1 size-4 shrink-0 text-gold-400" />
-                    <span className="leading-relaxed">{f}</span>
-                  </li>
-                ))}
-              </ul>
+              {/* Fakta ringkas buku (sama dengan src/lib/seo.ts BOOK_FACTS & JSON-LD) */}
+              <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+                <h3 className="font-display text-sm font-semibold tracking-[0.2em] text-gold-400 uppercase">Detail Buku</h3>
+                <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                  {BOOK_FACTS.map((f) => (
+                    <div key={f.label} className="contents">
+                      <dt className="text-white/55">{f.label}</dt>
+                      <dd className="font-medium text-white/90">{f.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
 
               <CtaPair placement="offer" className="mt-8" itemClassName="w-full sm:w-auto sm:shrink-0 sm:grow" />
             </div>

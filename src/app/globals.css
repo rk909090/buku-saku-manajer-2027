@@ -10,10 +10,12 @@
   --color-gold-400: #e5bb63;
   --color-gold-500: #d4a246;
   --color-gold-600: #b5852c;
+  --color-gold-700: #8a6418; /* teks emas di latar terang (kontras ≥4.5:1) */
   --color-cream: #faf6ee;
   --color-ink: #1a2232;
   --color-muted: #5b6577;
   --color-promo: #d92d2d;
+  --color-promo-dark: #b42318; /* teks merah di latar terang */
   --color-shopee: #ee4d2d;
   --color-shopee-dark: #d73211;
   --color-tokopedia: #00aa5b;
