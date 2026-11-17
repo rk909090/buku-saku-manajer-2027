@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AB_EXPERIMENT, AB_QUERY_PARAM, type AbVariantId } from "@/lib/ab-config";
-import { GA_CTA_EVENT } from "@/lib/analytics";
+import { GA_CTA_EVENT, GA_VIEW_EVENT } from "@/lib/analytics";
 
 /**
  * Semua event A/B lewat fungsi `trackAbEvent`, yang:
@@ -37,8 +37,13 @@ export function trackAbEvent(e: AbEvent) {
   window.__abEvents.push(e);
   if (process.env.NODE_ENV !== "production") console.info("[A/B]", e.event, e);
 
-  // GA4: klik tombol beli → event marketplace_click (key event).
-  // headline_variant & ab_experiment juga sudah di-set di level halaman (gtag('set')).
+  // GA4: tayangan headline → headline_view; klik tombol beli → marketplace_click (key event).
+  if (e.event === "ab_headline_view") {
+    window.gtag?.("event", GA_VIEW_EVENT, {
+      headline_variant: e.variant,
+      ab_experiment: e.experiment,
+    });
+  }
   if (e.event === "ab_cta_click") {
     window.gtag?.("event", GA_CTA_EVENT, {
       marketplace: e.marketplace,
