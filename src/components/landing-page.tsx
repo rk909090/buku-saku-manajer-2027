@@ -16,7 +16,6 @@ import {
   chaptersIntro,
   closing,
   company,
-  cta,
   faqHeading,
   faqs,
   hero,
@@ -49,6 +48,8 @@ import { AbTracker } from "@/components/ab-tracker";
 import type { HeadlineVariant } from "@/lib/content";
 import { AB_EXPERIMENT, AB_QUERY_PARAM } from "@/lib/ab-config";
 import { buildStructuredData } from "@/lib/structured-data";
+import { GoogleTag } from "@/components/google-tag";
+import { CartLink } from "@/components/shop/cart-link";
 import { BOOK_FACTS } from "@/lib/seo";
 
 function abInitScript(variantId: string) {
@@ -70,6 +71,7 @@ export function LandingPage({ variant }: { variant: HeadlineVariant }) {
 
   return (
     <>
+      <GoogleTag />
       {/* Structured data: WebSite, WebPage, Organization, Person, Book/Product, FAQPage */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       {/* Data varian A/B di dataLayer (untuk GTM). GA4 memakai gtag('set') di <head>. */}
@@ -148,8 +150,11 @@ function SiteHeader() {
         <a href="#" aria-label="Human Plus Institute">
           <Image src={logo} alt="Human Plus Institute" className="h-9 w-auto sm:h-10" preload />
         </a>
-        <div className="hidden sm:block">
-          <CtaPair size="sm" label={cta.short} placement="header" stretch={false} />
+        <div className="flex items-center gap-2">
+          <CartLink />
+          <div className="hidden sm:block">
+            <CtaPair size="sm" placement="header" stretch={false} />
+          </div>
         </div>
       </Container>
     </header>
@@ -773,7 +778,7 @@ function MobileCtaBar() {
         <span className="gold-text font-display text-xl font-bold">{price}</span>
         <span className="text-xs text-white/60">{priceNote}</span>
       </p>
-      <CtaPair size="sm" label={cta.short} placement="mobile-bar" stretch={false} itemClassName="flex-1" className="flex-nowrap" />
+      <CtaPair size="sm" placement="mobile-bar" stretch={false} itemClassName="flex-1" className="flex-nowrap" />
     </div>
   );
 }

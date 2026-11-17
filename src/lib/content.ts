@@ -3,7 +3,7 @@
  * (diambil 17 Nov 2026):
  *   [S1] https://shop.humplus.com/bsm/
  *   [S2] https://humanplusinstitute.myscalev.com/bukusakumanajer
- * Harga & tautan beli: Shopee + Tokopedia (lihat MARKETPLACES).
+ * Pembelian: keranjang & checkout situs sendiri (lihat src/lib/shop & /checkout).
  * Penanda emphasis mengikuti markup sumber:
  *   **teks**   = <strong>
  *   _teks_     = <em>
@@ -11,34 +11,24 @@
  */
 
 /**
- * Tempat membeli (permintaan pemilik, 17 Nov 2026). Setiap posisi CTA menampilkan
- * tombol Shopee lalu Tokopedia. Harga keduanya Rp120.000 tanpa promo.
- * CATATAN 17 Nov 2026: harga di Tokopedia masih tertulis Rp105.000 (salah) dan
- * akan diubah pemilik ke Rp120.000.
- * Kunci objek harus sama dengan AB_MARKETPLACES di src/lib/ab-config.ts.
+ * Sejak 17 Nov 2026 pembelian melalui keranjang & checkout situs sendiri (ongkir Biteship,
+ * pembayaran Xendit). Link marketplace lama disimpan untuk referensi, tidak lagi dipakai di halaman.
  */
-export const MARKETPLACES = {
-  shopee: {
-    name: "Shopee",
-    url: "https://shopee.co.id/Buku-Saku-Manajer-Edisi-Kedua-Buku-Manajemen-SDM-Cara-Menjadi-Manajer-Yang-Hebat-i.398813280.17992548335",
-  },
-  tokopedia: {
-    name: "Tokopedia",
-    url: "https://www.tokopedia.com/humplusstore/buku-saku-manajer-edisi-kedua-terbaru",
-  },
+export const LEGACY_MARKETPLACES = {
+  shopee: "https://shopee.co.id/Buku-Saku-Manajer-Edisi-Kedua-Buku-Manajemen-SDM-Cara-Menjadi-Manajer-Yang-Hebat-i.398813280.17992548335",
+  tokopedia: "https://www.tokopedia.com/humplusstore/buku-saku-manajer-edisi-kedua-terbaru",
 } as const;
-export type Marketplace = keyof typeof MARKETPLACES;
 
 /** Tautan WhatsApp dari tombol chat mengambang di [S1]. */
 export const WHATSAPP_URL = "https://wa.me/6287840848566";
 
 export const price = "Rp120.000";
-export const priceNote = "Harga di Shopee & Tokopedia";
+export const priceNote = "Belum termasuk ongkos kirim";
 
-/** Label tombol CTA; `{mp}` diganti nama marketplace. */
+/** Label tombol beli. */
 export const cta = {
-  main: "Beli di {mp}",
-  short: "{mp}",
+  main: "Beli Sekarang",
+  short: "Beli",
 };
 
 /* ───────────── HERO ───────────── */
@@ -424,9 +414,8 @@ export const offer = {
 
 /* ───────────── FAQ [S2] ─────────────
  * - FAQ harga promo DISKON20 dihapus (pembelian kini lewat Shopee, tanpa promo).
- * - "Bagaimana cara membeli buku?" diadaptasi dari [S2] untuk Shopee & Tokopedia.
- * - "Bagaimana proses pengiriman?" di sumber masih placeholder "[ISI ADMIN]",
- *   jadi sengaja TIDAK ditampilkan.
+ * - "Bagaimana cara membeli buku?" & "Bagaimana proses pengiriman?" ditulis ulang sesuai
+ *   alur checkout situs (Biteship + Xendit); di sumber jawabannya masih "[ISI ADMIN]".
  */
 export const faqHeading = "Pertanyaan yang Sering Diajukan";
 export const faqs = [
@@ -456,7 +445,11 @@ export const faqs = [
   },
   {
     q: "Bagaimana cara membeli buku?",
-    a: "Klik tombol **Beli di Shopee** atau **Beli di Tokopedia**, lalu selesaikan pemesanan dan pembayaran di marketplace pilihan Anda.",
+    a: "Klik tombol **Beli Sekarang**, isi data pemesan dan alamat pengiriman, pilih kurir, lalu bayar online di halaman pembayaran Xendit dengan metode yang tersedia di sana.",
+  },
+  {
+    q: "Bagaimana proses pengiriman?",
+    a: "Ongkos kirim dihitung otomatis saat checkout berdasarkan alamat tujuan dan kurir yang Anda pilih. Setelah pembayaran diterima, pesanan diproses dan nomor resi dapat dilihat di halaman status pesanan.",
   },
 ];
 

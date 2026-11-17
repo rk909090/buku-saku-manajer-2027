@@ -1,4 +1,4 @@
-import { MARKETPLACES, aboutBook, chapters, faqs, readers } from "@/lib/content";
+import { aboutBook, chapters, faqs, readers } from "@/lib/content";
 import { AUTHOR, BOOK_FACTS, ORGANIZATION, SEO_DESCRIPTION, SITE_URL } from "@/lib/seo";
 
 /**
@@ -48,7 +48,7 @@ function build() {
 
   lines.push("## Tautan", "");
   lines.push(`- [Halaman buku](${SITE_URL}/)`);
-  for (const m of Object.values(MARKETPLACES)) lines.push(`- [Beli di ${m.name}](${m.url})`);
+  lines.push(`- [Beli langsung (checkout situs)](${SITE_URL}/checkout?add=buku-saku-manajer)`);
   lines.push("");
   return lines.join("\n");
 }

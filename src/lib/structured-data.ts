@@ -1,4 +1,4 @@
-import { MARKETPLACES, aboutBook, chapters, faqs, readers } from "@/lib/content";
+import { aboutBook, chapters, faqs, price, readers } from "@/lib/content";
 import { AUTHOR, ORGANIZATION, SEO_DESCRIPTION, SEO_TITLE, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 /**
@@ -100,13 +100,13 @@ export function buildStructuredData() {
           name: `${ch.no}: ${ch.title}`,
           about: ch.topics.map((t) => t.title),
         })),
-        offers: (Object.keys(MARKETPLACES) as (keyof typeof MARKETPLACES)[]).map((m) => ({
+        offers: {
           "@type": "Offer",
-          url: MARKETPLACES[m].url,
-          price: "120000",
+          url: `${SITE_URL}/`,
+          price: price.replace(/\D/g, ""),
           priceCurrency: "IDR",
-          seller: { "@type": "Organization", name: `${ORGANIZATION.name} (${MARKETPLACES[m].name})` },
-        })),
+          seller: { "@id": id.org },
+        },
       },
       {
         "@type": "FAQPage",

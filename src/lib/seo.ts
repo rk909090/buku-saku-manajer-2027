@@ -55,5 +55,5 @@ export const BOOK_FACTS = [
   { label: "Bahasa", value: "Indonesia" },
   { label: "Untuk", value: "Supervisor, Manager, Direktur, Business Owner" },
   { label: "Harga", value: "Rp120.000" },
-  { label: "Tersedia di", value: "Shopee & Tokopedia" },
+  { label: "Pembelian", value: "Langsung di situs ini, ongkir dihitung saat checkout" },
 ];

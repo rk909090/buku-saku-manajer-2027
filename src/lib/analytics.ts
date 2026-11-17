@@ -16,9 +16,10 @@
  *      user property + parameter eksplisit di event di bawah.)
  *   - Saat headline tampil (ab-tracker.tsx):
  *       gtag('event', 'headline_view', { headline_variant, ab_experiment })
- *   - Saat tombol CTA diklik (ab-tracker.tsx):
- *       gtag('event', 'marketplace_click', { marketplace, cta_placement, headline_variant, ab_experiment })
- *     → ditandai sebagai key event di GA4.
+ *   - Saat tombol "Beli Sekarang" diklik (ab-tracker.tsx): add_to_cart (+ cta_placement, varian)
+ *   - Checkout & status pesanan (src/lib/ga.ts): begin_checkout, add_shipping_info,
+ *     add_payment_info, purchase (key event bawaan GA4).
+ *   (marketplace_click dipakai sampai 17 Nov 2026 saat tombol masih ke Shopee/Tokopedia.)
  *   - dataLayer juga menerima objek { event: 'ab_headline_view' | 'ab_cta_click', ... } untuk
  *     dipakai bila nanti memakai container Google Tag Manager biasa.
  */
@@ -26,8 +27,8 @@ import { AB_COOKIE, AB_EXPERIMENT, AB_QUERY_PARAM, AB_VARIANTS } from "@/lib/ab-
 
 export const GOOGLE_TAG_ID = "GTM-KFQV25X2";
 
-/** Nama event GA4 untuk klik tombol beli (key event). */
-export const GA_CTA_EVENT = "marketplace_click";
+/** Nama event GA4 untuk klik tombol beli (sejak checkout situs: event e-commerce standar). */
+export const GA_CTA_EVENT = "add_to_cart";
 
 /** Nama event GA4 saat headline hero tampil (penyebut conversion rate per varian). */
 export const GA_VIEW_EVENT = "headline_view";

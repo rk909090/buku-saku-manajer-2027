@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { MARKETPLACES, cta, price, priceNote, type Marketplace } from "@/lib/content";
+import { cta, price, priceNote } from "@/lib/content";
 
 /** Merender penanda emphasis sederhana dari content.ts (**bold**, _italic_, _**keduanya**_). */
 export function Rich({ text }: { text: string }) {
@@ -30,55 +30,41 @@ export function Rich({ text }: { text: string }) {
   );
 }
 
-const BRAND: Record<Marketplace, { button: string; Icon: (p: { className?: string }) => ReactNode }> = {
-  shopee: {
-    button:
-      "from-shopee to-shopee-dark shadow-[0_10px_30px_-8px_rgb(238_77_45/0.65)] focus-visible:outline-shopee",
-    Icon: ShopeeBagIcon,
-  },
-  tokopedia: {
-    button:
-      "from-tokopedia to-tokopedia-dark shadow-[0_10px_30px_-8px_rgb(0_170_91/0.6)] focus-visible:outline-tokopedia",
-    Icon: TokopediaBagIcon,
-  },
-};
+/** Slug produk yang ditambahkan ke keranjang oleh tombol beli di landing page. */
+export const PRODUCT_SLUG = "buku-saku-manajer";
 
-/** Tombol CTA bermerek marketplace (warna + ikon). Membuka marketplace di tab baru. */
+/**
+ * Tombol beli → checkout di situs sendiri (/checkout?add=…). Berupa link biasa sehingga
+ * tetap berfungsi walau JavaScript belum termuat; klik dicatat oleh A/B tracker (data-cta).
+ */
 export function CtaButton({
-  marketplace,
   label = cta.main,
   size = "lg",
   className = "",
   placement,
 }: {
-  marketplace: Marketplace;
-  /** `{mp}` diganti nama marketplace. */
   label?: string;
   size?: "sm" | "lg";
   className?: string;
   /** Posisi tombol di halaman, dicatat oleh A/B tracker (atribut data-cta). */
   placement: string;
 }) {
-  const mp = MARKETPLACES[marketplace];
-  const { button, Icon } = BRAND[marketplace];
-  const sizes = size === "sm" ? "gap-1.5 px-4 py-2.5 text-sm" : "gap-2.5 px-6 py-4 text-lg sm:text-xl";
+  const sizes = size === "sm" ? "gap-1.5 px-4 py-2.5 text-sm" : "gap-2.5 px-7 py-4 text-lg sm:text-xl";
   return (
     <a
-      href={mp.url}
+      href={`/checkout?add=${PRODUCT_SLUG}`}
       data-cta={placement}
-      data-mp={marketplace}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`cta-shine group inline-flex items-center justify-center rounded-full bg-gradient-to-b text-center font-display font-semibold tracking-wide whitespace-nowrap text-white ring-1 ring-white/25 transition hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-4 active:translate-y-0 ${button} ${sizes} ${className}`}
+      data-mp="checkout"
+      className={`cta-shine group inline-flex items-center justify-center rounded-full bg-gradient-to-b from-gold-400 to-gold-500 text-center font-display font-semibold tracking-wide whitespace-nowrap text-navy-950 shadow-[0_10px_30px_-8px_rgb(212_162_70/0.7)] ring-1 ring-gold-300/60 transition hover:-translate-y-0.5 hover:from-gold-300 hover:to-gold-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-400 active:translate-y-0 ${sizes} ${className}`}
     >
-      <Icon className={`shrink-0 ${size === "sm" ? "size-5" : "size-6"}`} />
-      {label.replace("{mp}", mp.name)}
+      <CartIcon className={`shrink-0 ${size === "sm" ? "size-4" : "size-5"}`} />
+      {label}
       <ArrowIcon className={`shrink-0 ${size === "sm" ? "size-4" : "size-5"}`} />
     </a>
   );
 }
 
-/** Pasangan tombol: Shopee lalu Tokopedia. */
+/** Pembungkus tata letak tombol beli (dulu pasangan Shopee/Tokopedia; kini satu tombol checkout). */
 export function CtaPair({
   placement,
   size = "lg",
@@ -92,19 +78,15 @@ export function CtaPair({
   size?: "sm" | "lg";
   label?: string;
   align?: "start" | "center";
-  /** true: tombol selebar layar di mobile, berdampingan mulai sm. */
   stretch?: boolean;
   className?: string;
   itemClassName?: string;
 }) {
-  const layout = stretch ? "flex-col sm:flex-row" : "flex-row";
   const justify = align === "center" ? "justify-center" : "justify-center lg:justify-start";
   const item = itemClassName ?? (stretch ? "w-full sm:w-auto" : "");
   return (
-    <div className={`flex flex-wrap gap-3 ${layout} ${justify} ${className}`}>
-      {(Object.keys(MARKETPLACES) as Marketplace[]).map((m) => (
-        <CtaButton key={m} marketplace={m} placement={placement} size={size} label={label} className={item} />
-      ))}
+    <div className={`flex ${justify} ${className}`}>
+      <CtaButton placement={placement} size={size} label={label} className={item} />
     </div>
   );
 }
@@ -115,12 +97,18 @@ export function PriceTag({ tone = "dark", center = false }: { tone?: "dark" | "l
   return (
     <p className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 ${center ? "justify-center" : ""}`}>
       <span className={`font-display text-4xl font-bold tracking-tight sm:text-5xl ${amount}`}>{price}</span>
-      <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${note}`}>
-        <ShopeeBagIcon className="size-4 text-shopee" />
-        <TokopediaBagIcon className="size-4 text-tokopedia" />
-        {priceNote}
-      </span>
+      <span className={`text-sm font-semibold ${note}`}>{priceNote}</span>
     </p>
+  );
+}
+
+export function CartIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
+      <circle cx="9" cy="20" r="1.4" />
+      <circle cx="18" cy="20" r="1.4" />
+      <path d="M2.5 3.5h2.6l2.4 11.2a1.8 1.8 0 0 0 1.8 1.4h8.4a1.8 1.8 0 0 0 1.8-1.4l1.5-7.2H6.1" />
+    </svg>
   );
 }
 

@@ -11,6 +11,9 @@ import {
   type AbVariantId,
 } from "@/lib/ab-config";
 
+/** Nama cookie sesi admin (sama dengan ADMIN_COOKIE di src/lib/shop/auth.ts). */
+const ADMIN_COOKIE = "bsm_admin";
+
 /**
  * A/B test headline hero.
  * Pengunjung "/" dibagi acak (bobot sama) ke salah satu varian, lalu di-rewrite
@@ -18,6 +21,19 @@ import {
  * Varian disimpan di cookie (format "<eksperimen>.<id>") agar konsisten antar-kunjungan.
  */
 export function proxy(request: NextRequest) {
+  // Dashboard admin: tanpa cookie sesi langsung ke halaman login. Validasi sesi yang
+  // sebenarnya tetap di server (setiap /api/admin/* memeriksa sesi di database).
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    const isLogin = request.nextUrl.pathname === "/admin/login";
+    if (!isLogin && !request.cookies.get(ADMIN_COOKIE)?.value) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      url.search = `?next=${encodeURIComponent(request.nextUrl.pathname + request.nextUrl.search)}`;
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
   // /v/* hanya target rewrite internal. Akses langsung diarahkan ke "/"
   // (varian valid dipertahankan sebagai ?hl= untuk pratinjau).
   if (request.nextUrl.pathname.startsWith("/v/")) {
@@ -89,5 +105,5 @@ function pickRandomVariant(): AbVariantId {
 }
 
 export const config = {
-  matcher: ["/", "/v/:path*"],
+  matcher: ["/", "/v/:path*", "/admin/:path*", "/admin"],
 };

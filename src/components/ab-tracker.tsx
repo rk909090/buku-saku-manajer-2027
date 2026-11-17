@@ -3,11 +3,15 @@
 import { useEffect, useState } from "react";
 import { AB_EXPERIMENT, AB_QUERY_PARAM, type AbVariantId } from "@/lib/ab-config";
 import { GA_CTA_EVENT, GA_VIEW_EVENT } from "@/lib/analytics";
+import { BOOK_ITEM, gaEvent } from "@/lib/ga";
+import { price } from "@/lib/content";
+
+const BOOK_PRICE = Number(price.replace(/\D/g, ""));
 
 /**
  * Semua event A/B lewat fungsi `trackAbEvent`, yang:
  *   1. mengirim event ke /api/ab → tabel MySQL `ab_events`,
- *   2. untuk klik CTA: gtag('event', 'marketplace_click', …) → GA4 (key event),
+ *   2. untuk klik tombol beli: gtag('event', 'add_to_cart', …) → GA4 (e-commerce),
  *   3. push objek event ke window.dataLayer (untuk GTM bila nanti dipakai), dan
  *   4. menyimpan salinan di window.__abEvents untuk pengecekan manual.
  */
@@ -37,7 +41,7 @@ export function trackAbEvent(e: AbEvent) {
   window.__abEvents.push(e);
   if (process.env.NODE_ENV !== "production") console.info("[A/B]", e.event, e);
 
-  // GA4: tayangan headline → headline_view; klik tombol beli → marketplace_click (key event).
+  // GA4: tayangan headline → headline_view; klik tombol beli → add_to_cart.
   if (e.event === "ab_headline_view") {
     window.gtag?.("event", GA_VIEW_EVENT, {
       headline_variant: e.variant,
@@ -45,8 +49,10 @@ export function trackAbEvent(e: AbEvent) {
     });
   }
   if (e.event === "ab_cta_click") {
-    window.gtag?.("event", GA_CTA_EVENT, {
-      marketplace: e.marketplace,
+    // Tombol "Beli Sekarang" menambahkan buku ke keranjang → event e-commerce standar GA4.
+    gaEvent(GA_CTA_EVENT, {
+      value: BOOK_PRICE,
+      items: [BOOK_ITEM(BOOK_PRICE, 1)],
       cta_placement: e.placement,
       headline_variant: e.variant,
       ab_experiment: e.experiment,
