@@ -55,13 +55,11 @@ function abInitScript(variantId: string) {
   const exp = JSON.stringify(AB_EXPERIMENT);
   const v = JSON.stringify(variantId);
   const q = JSON.stringify(AB_QUERY_PARAM);
+  // gtag('set') untuk GA4 ada di <head> (src/lib/analytics.ts); di sini hanya objek dataLayer
+  // untuk dipakai bila nanti memakai container Google Tag Manager biasa.
   return [
     "window.dataLayer=window.dataLayer||[];",
-    "function g(){dataLayer.push(arguments);}",
-    `var f=new URLSearchParams(location.search).has(${q});`,
-    `dataLayer.push({ab_experiment:${exp},headline_variant:${v},ab_forced:f});`,
-    `g('set',{headline_variant:${v},ab_experiment:${exp}});`,
-    "if(f){g('set',{traffic_type:'internal'});}",
+    `dataLayer.push({ab_experiment:${exp},headline_variant:${v},ab_forced:new URLSearchParams(location.search).has(${q})});`,
   ].join("");
 }
 
@@ -80,8 +78,7 @@ export function LandingPage({ variant }: { variant: HeadlineVariant }) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
-      {/* Data varian A/B untuk GA4 (lihat src/lib/analytics.ts). Script inline ini jalan saat
-          HTML diparse, sebelum Google tag selesai dimuat, sehingga ikut di page_view. */}
+      {/* Data varian A/B di dataLayer (untuk GTM). GA4 memakai gtag('set') di <head>. */}
       <script dangerouslySetInnerHTML={{ __html: abInitScript(variant.id) }} />
       <SiteHeader />
       <main>

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
-import { GOOGLE_TAG_ID } from "@/lib/analytics";
+import { GOOGLE_TAG_ID, googleTagInitScript } from "@/lib/analytics";
 import "./globals.css";
 
 const oswald = Oswald({
@@ -43,16 +43,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="id" className={`${oswald.variable} ${jakarta.variable} antialiased`}>
       <head>
-        {/* Google tag (GA4 "Buku Saku Manajer 2027", G-VCW01D9KTE) — snippet persis seperti
-            di GA4 > Data streams > View tag instructions > Install manually. */}
+        {/* Google tag (GA4 "Buku Saku Manajer 2027", G-VCW01D9KTE) — snippet dari
+            GA4 > Data streams > View tag instructions > Install manually, ditambah
+            gtag('set') varian A/B sebelum gtag('js') (lihat src/lib/analytics.ts). */}
         <script async src={`https://www.googletagmanager.com/gtm.js?id=${GOOGLE_TAG_ID}`} />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());`,
-          }}
-        />
+        <script dangerouslySetInnerHTML={{ __html: googleTagInitScript() }} />
       </head>
       <body className="min-h-dvh">{children}</body>
     </html>
