@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   // Tailwind diproses lewat postcss.config.mjs. Build produksi memakai webpack
   // (`next build --webpack`) karena Turbopack gagal membuat proses Node untuk
   // loader CSS di server build Hostinger.
+  experimental: {
+    // Server build Hostinger melaporkan puluhan CPU (49–56) sehingga Next membuat sebanyak itu worker;
+    // pada 17 Nov 2026 salah satu build gagal dengan worker SIGABRT. Batasi agar memori cukup.
+    cpus: 4,
+  },
 };
 
 export default nextConfig;
