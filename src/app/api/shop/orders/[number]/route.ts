@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import type { NextRequest } from "next/server";
+import { connection, type NextRequest } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { ensureSchema, getPool, isDbConfigured } from "@/lib/db";
 import { clientIp, errorResponse, json, rateLimited } from "@/lib/shop/http";
@@ -13,6 +13,7 @@ import { confirmPaymentFromXendit } from "@/lib/shop/orders";
 const lastCheck = new Map<string, number>();
 
 export async function GET(request: NextRequest, ctx: RouteContext<"/api/shop/orders/[number]">) {
+  await connection();
   if (!isDbConfigured()) return json({ error: "Toko belum siap" }, 503);
   const { number } = await ctx.params;
   const token = request.nextUrl.searchParams.get("t") || "";

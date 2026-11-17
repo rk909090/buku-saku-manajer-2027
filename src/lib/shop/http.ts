@@ -1,5 +1,6 @@
 import "server-only";
-import type { NextRequest } from "next/server";
+import { unstable_rethrow } from "next/navigation";
+import { connection, type NextRequest } from "next/server";
 import { getAdmin, type Admin } from "@/lib/shop/auth";
 import { isDbConfigured } from "@/lib/db";
 import { ShopError } from "@/lib/shop/orders";
@@ -46,6 +47,8 @@ export function rateLimited(key: string, max: number, windowMs: number) {
 }
 
 export function errorResponse(e: unknown) {
+  // Sinyal internal Next.js (mis. bail-out prerender) harus diteruskan, bukan dijadikan 500.
+  unstable_rethrow(e);
   if (e instanceof ShopError) return json({ error: e.message }, e.status);
   if (e instanceof BiteshipError) {
     console.error("[biteship]", e.status, e.code, e.message);
@@ -68,6 +71,7 @@ export async function withAdmin(
   fn: (admin: Admin) => Promise<Response>,
   opts: { ownerOnly?: boolean } = {}
 ) {
+  await connection(); // selalu dirender saat request (sesi admin), tidak pernah di-prerender
   try {
     if (!isDbConfigured()) return json({ error: "Database belum dikonfigurasi" }, 503);
     if (request.method !== "GET" && !sameOrigin(request)) return json({ error: "forbidden" }, 403);
