@@ -16,13 +16,15 @@ import {
  * penanda pratinjau (forced), dan jenis perangkat. TIDAK menyimpan IP atau user-agent.
  */
 const MAX_BODY = 1024;
+/** Domain produksi; selalu diizinkan sebagai Origin. */
+const SITE_HOST = "bsm.humplus.com";
 const BOT_RE = /bot|crawl|spider|slurp|headless|lighthouse|preview|facebookexternalhit|whatsapp|curl|wget|python|httpclient/i;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(request: NextRequest) {
-  // Hanya dari halaman ini sendiri.
-  const origin = request.headers.get("origin");
-  if (origin && origin !== request.nextUrl.origin) {
+  // Hanya dari halaman ini sendiri. Dibandingkan dengan header Host/X-Forwarded-Host,
+  // karena di belakang reverse proxy Hostinger request.nextUrl.origin bukan domain publik.
+  if (!isSameOrigin(request)) {
     return new Response(null, { status: 403 });
   }
 
@@ -62,6 +64,22 @@ export async function POST(request: NextRequest) {
     return new Response(null, { status: 500 });
   }
   return new Response(null, { status: 204 });
+}
+
+function isSameOrigin(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  if (!origin) return true; // sendBeacon same-origin kadang tanpa header Origin
+  let originHost: string;
+  try {
+    originHost = new URL(origin).host.toLowerCase();
+  } catch {
+    return false;
+  }
+  const hosts = [SITE_HOST, request.headers.get("x-forwarded-host"), request.headers.get("host")]
+    .flatMap((h) => (h ? h.split(",") : []))
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+  return hosts.includes(originHost);
 }
 
 function parseEvent(b: unknown) {
