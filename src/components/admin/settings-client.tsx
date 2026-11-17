@@ -6,7 +6,7 @@ import { adminFetch } from "@/components/admin/api";
 import { AreaCombobox, type AreaValue } from "@/components/shop/area-combobox";
 import { Alert, Badge, Button, Card, Field, inputCls, Loading, PageHeader } from "@/components/admin/ui";
 
-type Settings = { origin_area_id: string; origin_area_name: string; origin_postal_code: string; couriers: string; max_qty_per_item: number };
+type Settings = { origin_area_id: string; origin_area_name: string; origin_postal_code: string; couriers: string; max_qty_per_item: number; min_order_total: number };
 type Resp = { settings: Settings; defaultCouriers: string; integrations: { biteship: string; xendit: string; xenditWebhook: string } };
 
 /** Kode kurir dari dokumentasi Biteship (couriers overview). */
@@ -21,6 +21,7 @@ export function SettingsClient() {
   const [area, setArea] = useState<AreaValue | null>(null);
   const [couriers, setCouriers] = useState<string[]>([]);
   const [maxQty, setMaxQty] = useState("20");
+  const [minTotal, setMinTotal] = useState("10000");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
 
@@ -31,6 +32,7 @@ export function SettingsClient() {
         if (j.settings.origin_area_id) setArea({ id: j.settings.origin_area_id, name: j.settings.origin_area_name, postal_code: j.settings.origin_postal_code || null });
         setCouriers(j.settings.couriers.split(",").filter(Boolean));
         setMaxQty(String(j.settings.max_qty_per_item));
+        setMinTotal(String(j.settings.min_order_total));
       })
       .catch((e) => setMsg({ tone: "red", text: (e as Error).message }));
   }, []);
@@ -50,6 +52,7 @@ export function SettingsClient() {
           origin_postal_code: area.postal_code || "",
           couriers: couriers.join(","),
           max_qty_per_item: Number(maxQty) || 20,
+          min_order_total: Number(minTotal) || 0,
         }),
       });
       setMsg({ tone: "green", text: "Pengaturan tersimpan" });
@@ -104,6 +107,12 @@ export function SettingsClient() {
             </fieldset>
             <Field label="Maksimal jumlah per produk dalam satu pesanan">
               <input className={`${inputCls} max-w-32`} inputMode="numeric" value={maxQty} onChange={(e) => setMaxQty(e.target.value.replace(/\D/g, ""))} />
+            </Field>
+            <Field
+              label="Minimal total pembayaran (Rp)"
+              hint="Diskon/kupon tidak akan menurunkan total di bawah angka ini. Menurut tabel metode pembayaran Xendit: BCA VA & Alfamart/Indomaret min. Rp10.000, kartu Rp5.000, DANA/OVO Rp100, QRIS/ShopeePay/GoPay Rp1. Bila diturunkan di bawah Rp10.000, sebagian metode mungkin tidak bisa dipakai."
+            >
+              <input className={`${inputCls} max-w-40`} inputMode="numeric" value={minTotal} onChange={(e) => setMinTotal(e.target.value.replace(/\D/g, ""))} />
             </Field>
             <Button type="submit" loading={busy}>Simpan pengaturan</Button>
           </form>

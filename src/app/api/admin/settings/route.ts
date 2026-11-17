@@ -10,6 +10,7 @@ const body = z.object({
   origin_postal_code: z.string().trim().max(10),
   couriers: z.string().trim().regex(/^[a-z_]+(,[a-z_]+)*$/, "Format kurir: kode dipisah koma tanpa spasi"),
   max_qty_per_item: z.number().int().min(1).max(100),
+  min_order_total: z.number().int().min(1, "Minimal total pembayaran minimal Rp1").max(10_000_000),
 });
 
 export async function GET(request: NextRequest) {

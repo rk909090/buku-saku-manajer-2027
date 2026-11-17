@@ -10,7 +10,7 @@ import { formatDateTime, formatRupiah, ORDER_STATUS } from "@/lib/format";
 
 type Detail = {
   order: Record<string, string | number | null>;
-  items: { id: number; name: string; unit_price: number; quantity: number; weight_g: number }[];
+  items: { id: number; name: string; unit_price: number; original_price: number | null; discount_name: string | null; quantity: number; weight_g: number }[];
   events: { type: string; message: string; actor: string | null; created_at: string }[];
   allowedNext: string[];
 };
@@ -87,7 +87,9 @@ export function OrderDetailClient() {
                   <span>
                     <span className="font-medium text-slate-900">{i.name}</span>
                     <span className="block text-xs text-slate-500">
+                      {i.original_price != null && <s className="mr-1">{formatRupiah(i.original_price)}</s>}
                       {formatRupiah(i.unit_price)} × {i.quantity} · {i.weight_g * i.quantity} g
+                      {i.discount_name && <span className="ml-1 text-rose-700">· {i.discount_name}</span>}
                     </span>
                   </span>
                   <span className="font-semibold tabular-nums">{formatRupiah(i.unit_price * i.quantity)}</span>
@@ -96,7 +98,11 @@ export function OrderDetailClient() {
             </ul>
             <dl className="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-sm">
               <Line k="Subtotal" v={formatRupiah(Number(o.subtotal))} />
+              {Number(o.coupon_discount) > 0 && <Line k={`Kupon ${o.coupon_code}`} v={<span className="text-emerald-700">−{formatRupiah(Number(o.coupon_discount))}</span>} />}
               <Line k={`Ongkir (${o.courier_name} ${o.courier_service_name})`} v={formatRupiah(Number(o.shipping_cost))} />
+              {Number(o.shipping_discount) > 0 && (
+                <Line k={`Potongan ongkir (kupon ${o.coupon_code})`} v={<span className="text-emerald-700">−{formatRupiah(Number(o.shipping_discount))}</span>} />
+              )}
               <Line k="Total" v={<span className="text-base font-bold">{formatRupiah(Number(o.total))}</span>} />
             </dl>
           </Card>

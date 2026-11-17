@@ -25,4 +25,12 @@ export const orderBody = z.object({
     notes: z.string().trim().max(500).nullable(),
   }),
   courier: z.object({ code: z.string().min(1).max(32), serviceCode: z.string().min(1).max(48) }),
+  couponCode: z.string().trim().max(32).nullable().optional(),
+});
+
+export const couponBody = z.object({
+  code: z.string().trim().min(1, "Isi kode kupon").max(32, "Kode kupon tidak valid"),
+  lines: cartLines,
+  shippingCost: z.number().int().min(0).max(100_000_000).nullable(),
+  email: z.string().trim().max(50).nullable(),
 });

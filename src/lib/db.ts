@@ -75,8 +75,28 @@ async function migrate(): Promise<void> {
   }
 
   for (const sql of SHOP_SCHEMA) await pool.query(sql);
+
+  // Migrasi 17 Nov 2026: diskon & kupon pada pesanan yang tabelnya sudah ada.
+  for (const [table, column, ddl] of SHOP_COLUMNS) {
+    const [found] = await pool.query(
+      `SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+      [table, column]
+    );
+    if ((found as unknown[]).length === 0) await pool.query(`ALTER TABLE \`${table}\` ADD COLUMN ${ddl}`);
+  }
   await seedShop();
 }
+
+/** Kolom tambahan (ditambahkan otomatis bila belum ada). */
+const SHOP_COLUMNS: [string, string, string][] = [
+  ["orders", "discount_total", "discount_total INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'potongan diskon produk otomatis (info); subtotal sudah setelah diskon' AFTER subtotal"],
+  ["orders", "coupon_id", "coupon_id INT UNSIGNED NULL AFTER discount_total"],
+  ["orders", "coupon_code", "coupon_code VARCHAR(32) NULL AFTER coupon_id"],
+  ["orders", "coupon_discount", "coupon_discount INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'potongan kupon dari subtotal' AFTER coupon_code"],
+  ["orders", "shipping_discount", "shipping_discount INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'potongan ongkir dari kupon' AFTER shipping_cost"],
+  ["order_items", "original_price", "original_price INT UNSIGNED NULL COMMENT 'harga sebelum diskon produk' AFTER unit_price"],
+  ["order_items", "discount_name", "discount_name VARCHAR(120) NULL AFTER original_price"],
+];
 
 /* ─────────────── Toko: produk, pesanan, pelanggan, admin ─────────────── */
 
@@ -191,6 +211,36 @@ const SHOP_SCHEMA = [
     last_login_at  DATETIME(3)  NULL,
     created_at     DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id), UNIQUE KEY uq_email (email)
+  ) ${T}`,
+  `CREATE TABLE IF NOT EXISTS discounts (
+    id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name        VARCHAR(120) NOT NULL,
+    product_id  INT UNSIGNED NULL COMMENT 'NULL = semua produk',
+    type        VARCHAR(16)  NOT NULL COMMENT 'percent | fixed',
+    value       INT UNSIGNED NOT NULL,
+    starts_at   DATETIME(3)  NULL,
+    ends_at     DATETIME(3)  NULL,
+    active      TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id), KEY idx_active (active)
+  ) ${T}`,
+  `CREATE TABLE IF NOT EXISTS coupons (
+    id                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    code                VARCHAR(32)  NOT NULL,
+    description         VARCHAR(255) NULL,
+    type                VARCHAR(16)  NOT NULL COMMENT 'percent | fixed | free_shipping',
+    value               INT UNSIGNED NOT NULL DEFAULT 0,
+    max_discount        INT UNSIGNED NULL COMMENT 'batas potongan (persen / gratis ongkir)',
+    min_subtotal        INT UNSIGNED NULL,
+    starts_at           DATETIME(3)  NULL,
+    ends_at             DATETIME(3)  NULL,
+    usage_limit         INT UNSIGNED NULL COMMENT 'kuota total; NULL = tanpa batas',
+    per_customer_limit  INT UNSIGNED NULL COMMENT 'per email; NULL = tanpa batas',
+    active              TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at          DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at          DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id), UNIQUE KEY uq_code (code)
   ) ${T}`,
   `CREATE TABLE IF NOT EXISTS admin_sessions (
     token_hash  CHAR(64)     NOT NULL,

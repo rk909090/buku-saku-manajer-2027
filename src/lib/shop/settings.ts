@@ -12,6 +12,11 @@ export type ShopSettings = {
   /** Kode kurir Biteship dipisah koma, mis. "jne,jnt,sicepat". */
   couriers: string;
   max_qty_per_item: number;
+  /**
+   * Total pembayaran minimal (Rp). Default 10.000 = batas bawah BCA Virtual Account & Alfamart/Indomaret
+   * menurut tabel metode pembayaran Xendit; QRIS/ShopeePay/GoPay mulai Rp1, DANA/OVO Rp100, kartu Rp5.000.
+   */
+  min_order_total: number;
 };
 
 /** Kurir umum untuk paket buku menurut dokumentasi Biteship; admin bisa mengubahnya. */
@@ -23,6 +28,7 @@ const DEFAULTS: ShopSettings = {
   origin_postal_code: "",
   couriers: DEFAULT_COURIERS,
   max_qty_per_item: 20,
+  min_order_total: 10000,
 };
 
 export async function getSettings(): Promise<ShopSettings> {

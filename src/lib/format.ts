@@ -17,6 +17,19 @@ export function formatDateTime(iso: string | Date | null | undefined): string {
   });
 }
 
+/** ISO/Date → nilai <input type="datetime-local"> dalam WIB ("YYYY-MM-DDTHH:mm"). */
+export function toWibInput(v: string | Date | null | undefined): string {
+  if (!v) return "";
+  const t = new Date(v).getTime();
+  if (Number.isNaN(t)) return "";
+  return new Date(t + 7 * 3600_000).toISOString().slice(0, 16);
+}
+
+/** Nilai <input type="datetime-local"> (dibaca sebagai WIB) → ISO dengan offset +07:00. */
+export function fromWibInput(v: string): string | null {
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v) ? `${v}:00+07:00` : null;
+}
+
 /** Label & warna status pesanan (dipakai checkout status & dashboard). */
 export const ORDER_STATUS: Record<string, { label: string; tone: "amber" | "blue" | "violet" | "green" | "slate" | "red" }> = {
   pending_payment: { label: "Menunggu pembayaran", tone: "amber" },

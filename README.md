@@ -47,9 +47,18 @@ Lihat [`.env.example`](.env.example). Di Hostinger diisi lewat hPanel → Node.j
 - **Belum siap?** Bila kunci API, token webhook, lokasi asal, kurir, atau berat produk belum diisi, `/checkout` menampilkan tombol cadangan ke Shopee/Tokopedia/WhatsApp (`checkout-unavailable.tsx`). Daftar persiapan tampil di dashboard → Ringkasan.
 - **Funnel GA4**: `add_to_cart` (klik tombol beli) → `begin_checkout` → `add_shipping_info` → `add_payment_info` → `purchase` (sekali per pesanan). Pesanan juga menyimpan varian headline (`ab_variant`) untuk atribusi A/B.
 
+## Diskon & kupon (dashboard → Diskon & Kupon)
+
+- **Diskon produk**: persen atau nominal, untuk satu/semua produk, dengan periode mulai–berakhir (WIB). Otomatis tampil sebagai harga coret di checkout; bila beberapa diskon cocok dipakai potongan terbesar.
+- **Kupon**: persen (opsional maks. potongan), nominal, atau gratis ongkir (opsional maks.); min. belanja, periode, kuota total, kuota per pelanggan (email), aktif/nonaktif. Satu kupon per pesanan, bisa digabung dengan diskon produk.
+- Tautan promosi: `/checkout?add=buku-saku-manajer&kupon=KODE` memasang kupon otomatis. Kolom kupon di checkout hanya muncul bila ada kupon yang sedang berlaku.
+- Kuota total menghitung pesanan yang belum kedaluwarsa/dibatalkan (dikunci `SELECT … FOR UPDATE` saat pesanan dibuat); kuota per pelanggan menghitung pesanan yang sudah dibayar.
+- **Minimal total pembayaran** (Pengaturan, default Rp10.000): potongan dikurangi bila total akan turun di bawahnya. Batas bawah per metode menurut Xendit: BCA VA & Alfamart/Indomaret Rp10.000, kartu Rp5.000, DANA/OVO Rp100, QRIS/ShopeePay/GoPay Rp1.
+- Xendit tidak punya tipe item diskon, jadi potongan dimasukkan ke harga item; jumlah item selalu = total tagihan (`src/lib/shop/pricing.ts`).
+
 ## Dashboard admin (`/admin`)
 
-- Menu sidebar kiri: Ringkasan, Pesanan, Pelanggan, Produk, Analitik A/B, Pengaturan, Admin & Akun.
+- Menu sidebar kiri: Ringkasan, Pesanan, Pelanggan, Produk, Diskon & Kupon, Analitik A/B, Pengaturan, Admin & Akun.
 - Login: sesi acak (hanya hash SHA-256 di DB), cookie `bsm_admin` httpOnly/Secure/SameSite=Lax 7 hari, password scrypt, pembatasan percobaan login, cek same-origin untuk perubahan data.
 - Owner pertama dibuat otomatis dari `ADMIN_BOOTSTRAP_EMAIL`/`ADMIN_BOOTSTRAP_PASSWORD` saat tabel admin masih kosong. Owner dapat menambah admin lain; setelah itu hapus kedua variabel tersebut.
 - Alur status: `pending_payment` → `paid` → `processing` → `shipped` (wajib no. resi) → `completed`; `expired`/`cancelled`. Membatalkan pesanan yang sudah dibayar mengembalikan stok; **refund dilakukan manual di dashboard Xendit**.

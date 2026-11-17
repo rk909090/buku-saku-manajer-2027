@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT o.order_number, o.created_at, o.status, c.name, c.email, c.phone, o.recipient_name, o.recipient_phone,
                 o.address, o.area_name, o.postal_code, o.courier_name, o.courier_service_name, o.tracking_number,
-                o.subtotal, o.shipping_cost, o.total, o.paid_at,
+                o.subtotal, o.discount_total, o.coupon_code, o.coupon_discount, o.shipping_cost, o.shipping_discount, o.total, o.paid_at,
                 (SELECT GROUP_CONCAT(CONCAT(oi.name,' x',oi.quantity) SEPARATOR '; ') FROM order_items oi WHERE oi.order_id = o.id) AS items
            FROM orders o JOIN customers c ON c.id = o.customer_id ${w} ORDER BY o.id DESC LIMIT 5000`,
         args

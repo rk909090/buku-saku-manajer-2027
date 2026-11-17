@@ -24,7 +24,8 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/shop/ord
     const pool = getPool();
     const load = async () => {
       const [rows] = await pool.query<RowDataPacket[]>(
-        `SELECT id, order_number, public_token, status, subtotal, shipping_cost, total, courier_name, courier_service_name,
+        `SELECT id, order_number, public_token, status, subtotal, discount_total, coupon_code, coupon_discount,
+                shipping_cost, shipping_discount, total, courier_name, courier_service_name,
                 shipping_etd, recipient_name, area_name, payment_link_url, payment_expires_at, xendit_session_id,
                 paid_at, tracking_number, created_at
            FROM orders WHERE order_number = ? LIMIT 1`,
@@ -50,14 +51,18 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/shop/ord
       }
     }
     const [items] = await pool.query<RowDataPacket[]>(
-      "SELECT name, unit_price, quantity FROM order_items WHERE order_id = ?",
+      "SELECT name, unit_price, original_price, quantity FROM order_items WHERE order_id = ?",
       [o.id]
     );
     return json({
       order_number: o.order_number,
       status: o.status,
       subtotal: o.subtotal,
+      discount_total: o.discount_total,
+      coupon_code: o.coupon_code,
+      coupon_discount: o.coupon_discount,
       shipping_cost: o.shipping_cost,
+      shipping_discount: o.shipping_discount,
       total: o.total,
       courier: `${o.courier_name} ${o.courier_service_name}`,
       shipping_etd: o.shipping_etd,

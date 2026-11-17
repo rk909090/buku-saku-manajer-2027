@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
       customer: parsed.data.customer,
       shipping: parsed.data.shipping,
       courier: parsed.data.courier,
+      couponCode: parsed.data.couponCode || null,
       abVariant: exp === AB_EXPERIMENT && isAbVariant(v) ? v : null,
       visitorId: UUID_RE.test(vid) ? vid : null,
     });

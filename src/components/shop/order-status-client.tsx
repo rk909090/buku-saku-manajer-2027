@@ -12,7 +12,11 @@ type Status = {
   order_number: string;
   status: string;
   subtotal: number;
+  discount_total: number;
+  coupon_code: string | null;
+  coupon_discount: number;
   shipping_cost: number;
+  shipping_discount: number;
   total: number;
   courier: string;
   shipping_etd: string | null;
@@ -23,7 +27,7 @@ type Status = {
   paid_at: string | null;
   tracking_number: string | null;
   created_at: string;
-  items: { name: string; unit_price: number; quantity: number }[];
+  items: { name: string; unit_price: number; original_price: number | null; quantity: number }[];
 };
 
 const PAID_STATES = ["paid", "processing", "shipped", "completed"];
@@ -88,7 +92,8 @@ export function OrderStatusClient() {
     gaEvent("purchase", {
       transaction_id: data.order_number,
       value: data.total,
-      shipping: data.shipping_cost,
+      shipping: data.shipping_cost - data.shipping_discount,
+      ...(data.coupon_code ? { coupon: data.coupon_code } : {}),
       items: data.items.map((i) => ({ item_id: "buku-saku-manajer", item_name: i.name, price: i.unit_price, quantity: i.quantity })),
     });
   }, [data]);
@@ -183,12 +188,17 @@ export function OrderStatusClient() {
               <span className="text-ink">
                 {i.name} <span className="text-muted">× {i.quantity}</span>
               </span>
-              <span className="font-semibold tabular-nums">{formatRupiah(i.unit_price * i.quantity)}</span>
+              <span className="text-right tabular-nums">
+                {i.original_price != null && <s className="mr-2 text-sm text-muted">{formatRupiah(i.original_price * i.quantity)}</s>}
+                <span className="font-semibold">{formatRupiah(i.unit_price * i.quantity)}</span>
+              </span>
             </li>
           ))}
         </ul>
         <dl className="mt-2 space-y-2 border-t border-navy-900/10 pt-4 text-[15px]">
+          {data.coupon_discount > 0 && <Row k={`Kupon ${data.coupon_code}`} v={<span className="text-emerald-700">−{formatRupiah(data.coupon_discount)}</span>} />}
           <Row k="Ongkos kirim" v={formatRupiah(data.shipping_cost)} />
+          {data.shipping_discount > 0 && <Row k={`Potongan ongkir (${data.coupon_code})`} v={<span className="text-emerald-700">−{formatRupiah(data.shipping_discount)}</span>} />}
           <Row k="Total" v={<span className="font-display text-xl font-bold text-navy-900">{formatRupiah(data.total)}</span>} />
         </dl>
         <dl className="mt-5 grid gap-3 rounded-2xl bg-cream p-4 text-sm sm:grid-cols-2">

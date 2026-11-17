@@ -14,6 +14,7 @@ import {
   Settings,
   ShieldCheck,
   ShoppingBag,
+  TicketPercent,
   Users,
   X,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const NAV = [
   { href: "/admin/orders", label: "Pesanan", icon: ShoppingBag, match: ["/admin/orders", "/admin/order"] },
   { href: "/admin/customers", label: "Pelanggan", icon: Users, match: ["/admin/customers", "/admin/customer"] },
   { href: "/admin/products", label: "Produk", icon: Package },
+  { href: "/admin/promos", label: "Diskon & Kupon", icon: TicketPercent },
   { href: "/admin/ab", label: "Analitik A/B", icon: FlaskConical },
   { href: "/admin/settings", label: "Pengaturan", icon: Settings },
   { href: "/admin/users", label: "Admin & Akun", icon: ShieldCheck },

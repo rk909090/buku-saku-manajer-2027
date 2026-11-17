@@ -2,16 +2,28 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowLeft, Loader2, Lock, Minus, Plus, ShieldCheck, Trash2, Truck } from "lucide-react";
+import { AlertCircle, ArrowLeft, Loader2, Lock, Minus, Plus, ShieldCheck, Tag, Trash2, Truck, X } from "lucide-react";
 import { cart, useCart } from "@/components/shop/cart-store";
 import { AreaCombobox, type AreaValue } from "@/components/shop/area-combobox";
-import { formatRupiah } from "@/lib/format";
+import { formatDateTime, formatRupiah } from "@/lib/format";
 import { HomeLink } from "@/components/shop/home-link";
 import { CheckoutUnavailable } from "@/components/shop/checkout-unavailable";
 import { BOOK_ITEM, gaEvent } from "@/lib/ga";
 
-type Product = { slug: string; name: string; price: number; image_url: string | null; available: boolean; stock: number | null };
-type Catalog = { products: Product[]; maxQty: number; checkout: { ready: boolean; reason: string } };
+type Product = {
+  slug: string;
+  name: string;
+  price: number;
+  original_price: number | null;
+  discount_name: string | null;
+  discount_ends_at: string | null;
+  image_url: string | null;
+  available: boolean;
+  stock: number | null;
+};
+type Catalog = { products: Product[]; maxQty: number; minOrderTotal: number; couponsEnabled: boolean; checkout: { ready: boolean; reason: string } };
+type AppliedCoupon = { code: string; label: string; description: string | null; type: string; discount: number; shippingDiscount: number | null; limitedByMinimum: boolean };
+const COUPON_RE = /^[A-Za-z0-9_-]{3,32}$/;
 type Rate = {
   courier_code: string;
   courier_service_code: string;
@@ -74,14 +86,25 @@ export function CheckoutClient() {
   const [payError, setPayError] = useState("");
   const loaded = useRef(false);
   const gaBegin = useRef(false);
+  // Kupon: kode yang ingin dipakai (dari input atau ?kupon=), hasil validasi server, dan status UI.
+  const [couponCode, setCouponCode] = useState("");
+  const [couponInput, setCouponInput] = useState("");
+  const [couponOpen, setCouponOpen] = useState(false);
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
 
   // ?add=slug dari tombol "Beli Sekarang": pastikan ada di keranjang, lalu bersihkan URL.
   useEffect(() => {
     const add = sp.get("add");
-    if (add && /^[a-z0-9-]{1,64}$/.test(add)) {
-      cart.ensure(add);
-      router.replace("/checkout", { scroll: false });
+    const kupon = sp.get("kupon");
+    if (kupon && COUPON_RE.test(kupon)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- kode kupon dari tautan promosi, dibaca sekali
+      setCouponCode(kupon.toUpperCase());
+      setCouponOpen(true);
     }
+    if (add && /^[a-z0-9-]{1,64}$/.test(add)) cart.ensure(add);
+    if (add || kupon) router.replace("/checkout", { scroll: false });
   }, [sp, router]);
 
   useEffect(() => {
@@ -118,7 +141,11 @@ export function CheckoutClient() {
   const items = lines.filter((l) => products.has(l.slug)).map((l) => ({ ...l, product: products.get(l.slug)! }));
   const subtotal = items.reduce((s, i) => s + i.product.price * i.qty, 0);
   const selectedRate = rates?.find((r) => `${r.courier_code}|${r.courier_service_code}` === courier) || null;
-  const total = subtotal + (selectedRate?.price || 0);
+  const shippingCost = selectedRate?.price ?? null;
+  const couponDiscount = coupon?.discount || 0;
+  const shippingDiscount = coupon?.shippingDiscount || 0;
+  const total = subtotal - couponDiscount + (shippingCost || 0) - (shippingCost == null ? 0 : shippingDiscount);
+  const savedByDiscount = items.reduce((s, i) => s + ((i.product.original_price ?? i.product.price) - i.product.price) * i.qty, 0);
   const linesKey = JSON.stringify(items.map((i) => [i.slug, i.qty]));
   const gaItems = items.map((i) => ({ ...BOOK_ITEM(i.product.price, i.qty), item_id: i.slug, item_name: i.product.name }));
 
@@ -166,6 +193,59 @@ export function CheckoutClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- linesKey merangkum isi keranjang
   }, [form.area?.id, linesKey, catalog?.checkout.ready]);
 
+  // Validasi kupon di server setiap kali kode, isi keranjang, atau ongkir berubah.
+  useEffect(() => {
+    if (!couponCode || !catalog || items.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- tanpa kode/keranjang, kupon dilepas
+      setCoupon(null);
+      return;
+    }
+    let cancelled = false;
+    setCouponLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch("/api/shop/coupon", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: couponCode,
+            lines: items.map((i) => ({ slug: i.slug, qty: i.qty })),
+            shippingCost,
+            email: EMAIL_RE.test(form.email.trim()) ? form.email.trim() : null,
+          }),
+        });
+        const j = await r.json();
+        if (cancelled) return;
+        if (!r.ok) throw new Error(j.error || "Kupon tidak bisa dipakai");
+        setCoupon(j);
+        setCouponError("");
+      } catch (e) {
+        if (cancelled) return;
+        setCoupon(null);
+        setCouponCode("");
+        setCouponError((e as Error).message);
+      } finally {
+        if (!cancelled) setCouponLoading(false);
+      }
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- email sengaja tidak memicu ulang (dicek lagi saat bayar)
+  }, [couponCode, linesKey, shippingCost, catalog]);
+
+  function applyCoupon() {
+    const code = couponInput.trim().toUpperCase();
+    if (!COUPON_RE.test(code)) {
+      setCouponError("Kode kupon tidak valid");
+      return;
+    }
+    setCouponError("");
+    setCouponCode(code);
+    setCouponInput("");
+  }
+
   const errors = validate(form);
   const show = (k: keyof Form) => (submitted || touched[k]) && errors[k];
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -202,11 +282,21 @@ export function CheckoutClient() {
             notes: form.notes.trim() || null,
           },
           courier: { code: selectedRate.courier_code, serviceCode: selectedRate.courier_service_code },
+          couponCode: coupon?.code || null,
         }),
       });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "Gagal membuat pesanan");
-      gaEvent("add_payment_info", { value: j.total, items: gaItems, payment_type: "xendit" });
+      if (!r.ok) {
+        if (j.field === "coupon") {
+          // Kupon tidak berlaku lagi (mis. kuota habis / batas per email): lepas dan beri tahu pembeli.
+          setCoupon(null);
+          setCouponCode("");
+          setCouponError(j.error);
+          throw new Error(`${j.error}. Kupon dilepas — periksa total lalu klik Bayar lagi.`);
+        }
+        throw new Error(j.error || "Gagal membuat pesanan");
+      }
+      gaEvent("add_payment_info", { value: j.total, items: gaItems, payment_type: "xendit", ...(coupon ? { coupon: coupon.code } : {}) });
       try {
         localStorage.setItem("bsm_last_order", JSON.stringify({ number: j.orderNumber, token: j.token }));
       } catch {
@@ -260,7 +350,16 @@ export function CheckoutClient() {
             <img src={i.product.image_url || "/images/bsm-cover.png"} alt="" className="h-20 w-auto shrink-0 rounded-md" />
             <div className="min-w-0 flex-1">
               <p className="leading-snug font-semibold text-navy-900">{i.product.name}</p>
-              <p className="mt-0.5 text-sm text-muted">{formatRupiah(i.product.price)}</p>
+              <p className="mt-0.5 text-sm">
+                {i.product.original_price != null && <s className="mr-1.5 text-muted">{formatRupiah(i.product.original_price)}</s>}
+                <span className={i.product.original_price != null ? "font-semibold text-promo-dark" : "text-muted"}>{formatRupiah(i.product.price)}</span>
+              </p>
+              {i.product.discount_name && (
+                <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-promo/[0.08] px-2 py-0.5 text-xs font-semibold text-promo-dark">
+                  <Tag className="size-3" /> {i.product.discount_name}
+                  {i.product.discount_ends_at && <span className="font-normal">· s.d. {formatDateTime(i.product.discount_ends_at)} WIB</span>}
+                </p>
+              )}
               <div className="mt-2 flex items-center gap-2">
                 <div className="flex items-center rounded-full border border-navy-900/15">
                   <button
@@ -297,17 +396,119 @@ export function CheckoutClient() {
           </li>
         ))}
       </ul>
+      {(catalog.couponsEnabled || coupon || couponCode) && (
+        <div className="mt-6 border-t border-navy-900/10 pt-5">
+          {coupon ? (
+            <div className="flex items-start gap-3 rounded-2xl border border-emerald-600/25 bg-emerald-50 p-3.5">
+              <Tag className="mt-0.5 size-4 shrink-0 text-emerald-700" />
+              <div className="min-w-0 flex-1 text-sm">
+                <p className="font-semibold text-emerald-900">
+                  Kupon <span className="font-mono">{coupon.code}</span> terpasang
+                </p>
+                <p className="text-emerald-800">
+                  {coupon.label}
+                  {coupon.type === "free_shipping" && coupon.shippingDiscount == null && " — dihitung setelah kurir dipilih"}
+                </p>
+                {coupon.limitedByMinimum && (
+                  <p className="mt-1 text-xs text-emerald-800">Potongan disesuaikan agar total minimal {formatRupiah(catalog.minOrderTotal)}.</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCouponCode("");
+                  setCoupon(null);
+                }}
+                aria-label="Lepas kupon"
+                className="grid size-7 place-items-center rounded-full text-emerald-800 hover:bg-emerald-100"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          ) : couponOpen || couponCode ? (
+            <div>
+              <label htmlFor="coupon" className="text-sm font-semibold text-navy-900">
+                Kode kupon
+              </label>
+              <div className="mt-1.5 flex gap-2">
+                <input
+                  id="coupon"
+                  className={`${input} py-2.5 font-mono uppercase`}
+                  value={couponLoading ? couponCode : couponInput}
+                  disabled={couponLoading}
+                  maxLength={32}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  onChange={(e) => {
+                    setCouponInput(e.target.value);
+                    setCouponError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyCoupon();
+                    }
+                  }}
+                  aria-invalid={!!couponError}
+                  aria-describedby={couponError ? "coupon-error" : undefined}
+                />
+                <button
+                  type="button"
+                  onClick={applyCoupon}
+                  disabled={couponLoading || !couponInput.trim()}
+                  className="shrink-0 rounded-xl bg-navy-900 px-4 text-sm font-semibold text-white hover:bg-navy-800 disabled:opacity-50"
+                >
+                  {couponLoading ? <Loader2 className="size-4 animate-spin" /> : "Pakai"}
+                </button>
+              </div>
+              {couponError && (
+                <p id="coupon-error" role="alert" className="mt-1.5 text-sm text-promo-dark">
+                  {couponError}
+                </p>
+              )}
+            </div>
+          ) : (
+            <button type="button" onClick={() => setCouponOpen(true)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-navy-800 underline-offset-4 hover:underline">
+              <Tag className="size-4" /> Punya kode kupon?
+            </button>
+          )}
+        </div>
+      )}
       <dl className="mt-6 space-y-2.5 border-t border-navy-900/10 pt-5 text-[15px]">
         <div className="flex justify-between">
           <dt className="text-muted">Subtotal</dt>
           <dd className="font-semibold text-ink tabular-nums">{formatRupiah(subtotal)}</dd>
         </div>
+        {couponDiscount > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-muted">
+              Kupon <span className="font-mono">{coupon?.code}</span>
+            </dt>
+            <dd className="font-semibold text-emerald-700 tabular-nums">−{formatRupiah(couponDiscount)}</dd>
+          </div>
+        )}
         <div className="flex justify-between">
           <dt className="text-muted">Ongkos kirim</dt>
           <dd className="font-semibold text-ink tabular-nums">
-            {selectedRate ? formatRupiah(selectedRate.price) : <span className="text-muted">Pilih kurir</span>}
+            {selectedRate ? (
+              shippingDiscount > 0 ? (
+                <>
+                  <s className="mr-1.5 font-normal text-muted">{formatRupiah(selectedRate.price)}</s>
+                  {selectedRate.price - shippingDiscount === 0 ? <span className="text-emerald-700">Gratis</span> : formatRupiah(selectedRate.price - shippingDiscount)}
+                </>
+              ) : (
+                formatRupiah(selectedRate.price)
+              )
+            ) : (
+              <span className="text-muted">Pilih kurir</span>
+            )}
           </dd>
         </div>
+        {savedByDiscount + couponDiscount + (selectedRate ? shippingDiscount : 0) > 0 && (
+          <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
+            Anda hemat {formatRupiah(savedByDiscount + couponDiscount + (selectedRate ? shippingDiscount : 0))}
+          </p>
+        )}
         <div className="flex items-baseline justify-between border-t border-navy-900/10 pt-3">
           <dt className="font-semibold text-navy-900">Total</dt>
           <dd className="font-display text-2xl font-bold text-navy-900 tabular-nums">{formatRupiah(total)}</dd>
