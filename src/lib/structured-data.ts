@@ -53,6 +53,7 @@ export function buildStructuredData() {
         legalName: ORGANIZATION.legalName,
         url: ORGANIZATION.url,
         logo: { "@type": "ImageObject", url: `${SITE_URL}/images/logo-hpi.png`, width: 350, height: 100 },
+        image: `${SITE_URL}/images/pelatihan/01.webp`, // "Pelatihan Human Plus Institute"
         slogan: ORGANIZATION.slogan,
         description: ORGANIZATION.description,
         telephone: ORGANIZATION.telephone,
@@ -90,7 +91,7 @@ export function buildStructuredData() {
         publisher: { "@id": id.org },
         brand: { "@type": "Brand", name: ORGANIZATION.name },
         audience: {
-          "@type": "Audience",
+          "@type": "PeopleAudience",
           audienceType: readers.groups.map((g) => `${g.level} (${g.role})`).join(", "),
         },
         hasPart: chapters.map((ch, i) => ({
