@@ -39,6 +39,8 @@ export type Coupon = {
   type: CouponType;
   value: number;
   max_discount: number | null;
+  /** Kupon persen/nominal yang sekaligus menggratiskan ongkir (penuh). */
+  free_shipping: number;
   min_subtotal: number | null;
   starts_at: Date | null;
   ends_at: Date | null;
@@ -78,9 +80,10 @@ export function bestDiscount(price: number, productId: number, discounts: Discou
 
 /* ───────────── Kupon ───────────── */
 
-export function couponLabel(c: Pick<Coupon, "type" | "value" | "max_discount">) {
-  if (c.type === "percent") return `Diskon ${c.value}%${c.max_discount ? ` (maks. ${formatRupiah(c.max_discount)})` : ""}`;
-  if (c.type === "fixed") return `Potongan ${formatRupiah(c.value)}`;
+export function couponLabel(c: Pick<Coupon, "type" | "value" | "max_discount" | "free_shipping">) {
+  const ship = c.free_shipping ? " + gratis ongkir" : "";
+  if (c.type === "percent") return `Diskon ${c.value}%${c.max_discount ? ` (maks. ${formatRupiah(c.max_discount)})` : ""}${ship}`;
+  if (c.type === "fixed") return `Potongan ${formatRupiah(c.value)}${ship}`;
   return c.max_discount ? `Gratis ongkir s.d. ${formatRupiah(c.max_discount)}` : "Gratis ongkir";
 }
 
@@ -143,7 +146,10 @@ export async function evaluateCoupon(
     if (c.max_discount) discount = Math.min(discount, c.max_discount);
   } else if (c.type === "fixed") {
     discount = Math.min(c.value, ctx.subtotal);
-  } else {
+  }
+  if (c.type !== "free_shipping" && c.free_shipping) {
+    shippingDiscount = ctx.shippingCost; // gratis ongkir penuh (null bila kurir belum dipilih)
+  } else if (c.type === "free_shipping") {
     shippingDiscount = ctx.shippingCost == null ? null : Math.min(ctx.shippingCost, c.max_discount ?? ctx.shippingCost);
   }
   return { coupon: c, label: couponLabel(c), discount, shippingDiscount };

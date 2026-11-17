@@ -94,6 +94,7 @@ const SHOP_COLUMNS: [string, string, string][] = [
   ["orders", "coupon_code", "coupon_code VARCHAR(32) NULL AFTER coupon_id"],
   ["orders", "coupon_discount", "coupon_discount INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'potongan kupon dari subtotal' AFTER coupon_code"],
   ["orders", "shipping_discount", "shipping_discount INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'potongan ongkir dari kupon' AFTER shipping_cost"],
+  ["coupons", "free_shipping", "free_shipping TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'kupon persen/nominal yang juga menggratiskan ongkir' AFTER max_discount"],
   ["order_items", "original_price", "original_price INT UNSIGNED NULL COMMENT 'harga sebelum diskon produk' AFTER unit_price"],
   ["order_items", "discount_name", "discount_name VARCHAR(120) NULL AFTER original_price"],
 ];
@@ -232,6 +233,7 @@ const SHOP_SCHEMA = [
     type                VARCHAR(16)  NOT NULL COMMENT 'percent | fixed | free_shipping',
     value               INT UNSIGNED NOT NULL DEFAULT 0,
     max_discount        INT UNSIGNED NULL COMMENT 'batas potongan (persen / gratis ongkir)',
+    free_shipping       TINYINT(1)   NOT NULL DEFAULT 0 COMMENT 'kupon persen/nominal yang juga menggratiskan ongkir',
     min_subtotal        INT UNSIGNED NULL,
     starts_at           DATETIME(3)  NULL,
     ends_at             DATETIME(3)  NULL,

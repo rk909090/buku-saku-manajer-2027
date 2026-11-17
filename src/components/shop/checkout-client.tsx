@@ -407,7 +407,7 @@ export function CheckoutClient() {
                 </p>
                 <p className="text-emerald-800">
                   {coupon.label}
-                  {coupon.type === "free_shipping" && coupon.shippingDiscount == null && " — dihitung setelah kurir dipilih"}
+                  {coupon.shippingDiscount == null && " — potongan ongkir dihitung setelah kurir dipilih"}
                 </p>
                 {coupon.limitedByMinimum && (
                   <p className="mt-1 text-xs text-emerald-800">Potongan disesuaikan agar total minimal {formatRupiah(catalog.minOrderTotal)}.</p>

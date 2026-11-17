@@ -29,6 +29,7 @@ export const couponAdminBody = z
     type: z.enum(["percent", "fixed", "free_shipping"]),
     value: z.number().int().min(0).max(100_000_000),
     max_discount: z.number().int().min(1).max(100_000_000).nullable(),
+    free_shipping: z.boolean(),
     min_subtotal: z.number().int().min(1).max(100_000_000).nullable(),
     starts_at: when,
     ends_at: when,

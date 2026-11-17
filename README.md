@@ -50,7 +50,7 @@ Lihat [`.env.example`](.env.example). Di Hostinger diisi lewat hPanel → Node.j
 ## Diskon & kupon (dashboard → Diskon & Kupon)
 
 - **Diskon produk**: persen atau nominal, untuk satu/semua produk, dengan periode mulai–berakhir (WIB). Otomatis tampil sebagai harga coret di checkout; bila beberapa diskon cocok dipakai potongan terbesar.
-- **Kupon**: persen (opsional maks. potongan), nominal, atau gratis ongkir (opsional maks.); min. belanja, periode, kuota total, kuota per pelanggan (email), aktif/nonaktif. Satu kupon per pesanan, bisa digabung dengan diskon produk.
+- **Kupon**: persen (opsional maks. potongan), nominal, atau gratis ongkir (opsional maks.); kupon persen/nominal bisa ditambah “+ Gratis ongkir”; min. belanja, periode, kuota total, kuota per pelanggan (email), aktif/nonaktif. Satu kupon per pesanan, bisa digabung dengan diskon produk.
 - Tautan promosi: `/checkout?add=buku-saku-manajer&kupon=KODE` memasang kupon otomatis. Kolom kupon di checkout hanya muncul bila ada kupon yang sedang berlaku.
 - Kuota total menghitung pesanan yang belum kedaluwarsa/dibatalkan (dikunci `SELECT … FOR UPDATE` saat pesanan dibuat); kuota per pelanggan menghitung pesanan yang sudah dibayar.
 - **Minimal total pembayaran** (Pengaturan, default Rp10.000): potongan dikurangi bila total akan turun di bawahnya. Batas bawah per metode menurut Xendit: BCA VA & Alfamart/Indomaret Rp10.000, kartu Rp5.000, DANA/OVO Rp100, QRIS/ShopeePay/GoPay Rp1.

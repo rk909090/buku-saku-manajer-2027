@@ -27,6 +27,7 @@ type CouponRow = {
   type: "percent" | "fixed" | "free_shipping";
   value: number;
   max_discount: number | null;
+  free_shipping: number;
   min_subtotal: number | null;
   starts_at: string | null;
   ends_at: string | null;
@@ -53,11 +54,11 @@ const SHOP_URL = "https://bsm.humplus.com/checkout?add=buku-saku-manajer";
 const period = (s: string | null, e: string | null) =>
   !s && !e ? "Tanpa batas waktu" : `${s ? formatDateTime(s) : "Sekarang"} – ${e ? formatDateTime(e) : "tanpa batas"}`;
 
-const couponValue = (c: Pick<CouponRow, "type" | "value" | "max_discount">) =>
+const couponValue = (c: Pick<CouponRow, "type" | "value" | "max_discount" | "free_shipping">) =>
   c.type === "percent"
-    ? `${c.value}%${c.max_discount ? ` (maks. ${formatRupiah(c.max_discount)})` : ""}`
+    ? `${c.value}%${c.max_discount ? ` (maks. ${formatRupiah(c.max_discount)})` : ""}${c.free_shipping ? " + gratis ongkir" : ""}`
     : c.type === "fixed"
-      ? formatRupiah(c.value)
+      ? `${formatRupiah(c.value)}${c.free_shipping ? " + gratis ongkir" : ""}`
       : `Gratis ongkir${c.max_discount ? ` s.d. ${formatRupiah(c.max_discount)}` : ""}`;
 
 export function PromosClient() {
@@ -404,6 +405,7 @@ function CouponEditor({
     type: coupon?.type || ("percent" as CouponRow["type"]),
     value: coupon ? String(coupon.value) : "",
     max_discount: coupon?.max_discount != null ? String(coupon.max_discount) : "",
+    free_shipping: coupon ? !!coupon.free_shipping : false,
     min_subtotal: coupon?.min_subtotal != null ? String(coupon.min_subtotal) : "",
     start: toWibInput(coupon?.starts_at),
     end: toWibInput(coupon?.ends_at),
@@ -427,8 +429,9 @@ function CouponEditor({
     const ship = 15000;
     const v = Number(f.value) || 0;
     const max = Number(f.max_discount) || 0;
-    if (f.type === "percent") return Math.min(Math.floor((sub * Math.min(v, 100)) / 100), max || Infinity);
-    if (f.type === "fixed") return Math.min(v, sub);
+    const extra = f.free_shipping ? ship : 0;
+    if (f.type === "percent") return Math.min(Math.floor((sub * Math.min(v, 100)) / 100), max || Infinity) + extra;
+    if (f.type === "fixed") return Math.min(v, sub) + extra;
     return Math.min(ship, max || ship);
   })();
 
@@ -443,6 +446,7 @@ function CouponEditor({
         type: f.type,
         value: f.type === "free_shipping" ? 0 : Number(f.value || 0),
         max_discount: f.type === "fixed" ? null : num(f.max_discount),
+        free_shipping: f.type !== "free_shipping" && f.free_shipping,
         min_subtotal: num(f.min_subtotal),
         starts_at: f.start ? fromWibInput(f.start) : null,
         ends_at: f.end ? fromWibInput(f.end) : null,
@@ -503,6 +507,15 @@ function CouponEditor({
             <input className={inputCls} inputMode="numeric" value={f.min_subtotal} onChange={(e) => set("min_subtotal", digits(e.target.value))} />
           </Field>
         </div>
+        {f.type !== "free_shipping" && (
+          <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm text-slate-800">
+            <input type="checkbox" className="mt-0.5 size-4 accent-slate-900" checked={f.free_shipping} onChange={(e) => set("free_shipping", e.target.checked)} />
+            <span>
+              <span className="font-medium">+ Gratis ongkir</span>
+              <span className="block text-xs text-slate-500">Selain potongan di atas, ongkos kirim juga digratiskan penuh (ditanggung toko).</span>
+            </span>
+          </label>
+        )}
         <PeriodFields start={f.start} end={f.end} setStart={(v) => set("start", v)} setEnd={(v) => set("end", v)} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Kuota total (opsional)" hint="Kosong = tanpa batas">

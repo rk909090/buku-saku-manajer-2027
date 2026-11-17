@@ -14,10 +14,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/
     const c = parsed.data;
     try {
       const [r] = await getPool().query<ResultSetHeader>(
-        `UPDATE coupons SET code = ?, description = ?, type = ?, value = ?, max_discount = ?, min_subtotal = ?, starts_at = ?, ends_at = ?,
+        `UPDATE coupons SET code = ?, description = ?, type = ?, value = ?, max_discount = ?, free_shipping = ?, min_subtotal = ?, starts_at = ?, ends_at = ?,
                 usage_limit = ?, per_customer_limit = ?, active = ? WHERE id = ?`,
         [
-          c.code, c.description, c.type, c.type === "free_shipping" ? 0 : c.value, c.type === "fixed" ? null : c.max_discount, c.min_subtotal,
+          c.code, c.description, c.type, c.type === "free_shipping" ? 0 : c.value, c.type === "fixed" ? null : c.max_discount, c.type !== "free_shipping" && c.free_shipping ? 1 : 0, c.min_subtotal,
           c.starts_at ? new Date(c.starts_at) : null, c.ends_at ? new Date(c.ends_at) : null, c.usage_limit, c.per_customer_limit, c.active ? 1 : 0, id,
         ]
       );
