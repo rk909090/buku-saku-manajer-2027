@@ -1,17 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
+  // Tailwind diproses lewat postcss.config.mjs. Build produksi memakai webpack
+  // (`next build --webpack`) karena Turbopack gagal membuat proses Node untuk
+  // loader CSS di server build Hostinger.
 };
 
 export default nextConfig;
