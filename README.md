@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Buku Saku Manajer — Landing Page
 
-## Getting Started
+Landing page untuk **Buku Saku Manajer Edisi Kedua** (Armala · Human Plus Institute), dibangun dengan Next.js 16.
+Produksi: https://bsm.humplus.com
 
-First, run the development server:
+## Isi & sumber materi
+
+Semua copywriting dan foto diambil dari:
+
+- https://shop.humplus.com/bsm/
+- https://humanplusinstitute.myscalev.com/bukusakumanajer
+
+Teks ada di [`src/lib/content.ts`](src/lib/content.ts). Tombol CTA mengarah ke halaman produk Shopee (`ORDER_URL`); harga Rp120.000.
+
+## Menjalankan secara lokal
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # isi bila ingin mencatat A/B ke MySQL lokal
+npm run build
+npm run start                # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Tanpa variabel DB, halaman tetap jalan; `/api/ab` membalas 503 dan event tidak disimpan.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## A/B test headline hero
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `src/proxy.ts` membagi pengunjung `/` secara acak (bobot sama) ke varian `a`/`b`/`c`, menyimpan varian di cookie `bsm_ab_hero` (30 hari) dan ID anonim di `bsm_vid`, lalu me-rewrite ke halaman statis `/v/[varian]`. URL tetap `/`.
+- Teks varian: `headlineVariants` di `src/lib/content.ts`. Konfigurasi: `src/lib/ab-config.ts`.
+- Pratinjau semua varian: `/ab`. Paksa satu varian: `/?hl=b` (tidak mengubah cookie; event ditandai `forced` dan tidak dihitung).
+- Event `ab_headline_view` dan `ab_cta_click` (dengan posisi tombol) dikirim ke `POST /api/ab` lalu disimpan di tabel MySQL `ab_events` (dibuat otomatis).
+- Hasil: `GET /api/ab/stats` dengan header `Authorization: Bearer <AB_STATS_TOKEN>` atau `?token=`.
+- Memulai eksperimen baru: ubah `AB_EXPERIMENT` agar pengunjung dibagi ulang.
 
-## Learn More
+## Environment variables
 
-To learn more about Next.js, take a look at the following resources:
+Lihat [`.env.example`](.env.example). Di Hostinger diisi lewat hPanel → Node.js → Environment variables (jangan di-commit):
+`DB_HOST` (127.0.0.1), `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `AB_STATS_TOKEN`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Hosting Node.js di Hostinger (dibutuhkan untuk proxy A/B dan API; hosting statis tidak cukup).
