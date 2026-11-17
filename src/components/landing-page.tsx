@@ -740,13 +740,17 @@ function Offer({ promo }: { promo: LandingPromo | null }) {
         <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-navy-900 text-white shadow-2xl">
           <div aria-hidden="true" className="absolute -top-24 -left-24 size-72 rounded-full bg-gold-500/20 blur-3xl" />
           <div className="relative grid items-center gap-8 p-6 sm:p-10 md:grid-cols-[0.95fr_1.05fr] lg:gap-12 lg:p-12">
-            <Image
-              src={stackPhoto}
-              alt="Foto asli empat eksemplar Buku Saku Manajer Edisi Kedua di atas meja kayu"
-              className="mx-auto h-auto w-full max-w-sm rounded-[2rem] shadow-2xl ring-1 ring-white/10 md:max-w-none"
-              sizes="(max-width: 768px) 92vw, 440px"
-              placeholder="blur"
-            />
+            {/* Desktop: foto mengikuti tinggi kolom teks (mis. saat ada kartu hitung mundur promo), maks. 46rem agar
+                potongan tepi foto tetap kecil. */}
+            <div className="md:flex md:items-center md:self-stretch">
+              <Image
+                src={stackPhoto}
+                alt="Foto asli empat eksemplar Buku Saku Manajer Edisi Kedua di atas meja kayu"
+                className="mx-auto h-auto w-full max-w-sm rounded-[2rem] shadow-2xl ring-1 ring-white/10 md:h-full md:max-h-[46rem] md:max-w-none md:object-cover"
+                sizes="(max-width: 768px) 92vw, 440px"
+                placeholder="blur"
+              />
+            </div>
             <div>
               <h2 className="font-display text-3xl leading-tight font-bold sm:text-4xl">{offer.title}</h2>
               <p className="mt-2 text-white/65">{offer.byline}</p>
