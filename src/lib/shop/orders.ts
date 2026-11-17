@@ -8,6 +8,7 @@ import { createPaymentSession, getPaymentSession, type CreateSessionInput } from
 import { SITE_ORIGIN } from "@/lib/shop/env";
 import { activeDiscounts, applyMinimumTotal, bestDiscount, evaluateCoupon, type CouponQuote } from "@/lib/shop/promo";
 import { paymentLines } from "@/lib/shop/pricing";
+import { queueAdminNewOrderEmail, queueCustomerEmail } from "@/lib/email/notify";
 import { formatRupiah } from "@/lib/format";
 
 export type Product = {
@@ -277,7 +278,7 @@ export async function createOrder(input: CreateOrderInput) {
       [session.payment_session_id, session.payment_link_url, session.expires_at ? new Date(session.expires_at) : expiresAt, orderId]
     );
     await addEvent(pool, orderId, "payment_link", `Link pembayaran Xendit dibuat (${session.payment_session_id})`);
-    return { orderNumber: number, token, paymentLinkUrl: session.payment_link_url, total };
+    return { orderId, orderNumber: number, token, paymentLinkUrl: session.payment_link_url, total };
   } catch (e) {
     await pool.query("UPDATE orders SET status = 'cancelled' WHERE id = ?", [orderId]);
     await addEvent(pool, orderId, "payment_error", `Gagal membuat pembayaran: ${(e as Error).message}`.slice(0, 500));
@@ -313,6 +314,8 @@ export async function confirmPaymentFromXendit(sessionId: string, source: string
     );
     if (res.affectedRows === 1) {
       await addEvent(pool, order.id, "paid", `Pembayaran diterima (Xendit ${s.payment_id || sessionId})`, source);
+      queueCustomerEmail(order.id, "paid");
+      queueAdminNewOrderEmail(order.id, true);
       // Kurangi stok bila dibatasi.
       await pool.query(
         `UPDATE products p JOIN order_items oi ON oi.product_id = p.id
@@ -327,7 +330,10 @@ export async function confirmPaymentFromXendit(sessionId: string, source: string
       "UPDATE orders SET status = 'expired' WHERE id = ? AND status = 'pending_payment'",
       [order.id]
     );
-    if (res.affectedRows === 1) await addEvent(pool, order.id, "expired", `Sesi pembayaran ${s.status}`, source);
+    if (res.affectedRows === 1) {
+      await addEvent(pool, order.id, "expired", `Sesi pembayaran ${s.status}`, source);
+      queueCustomerEmail(order.id, "expired");
+    }
     return { ok: true, status: "expired" } as const;
   }
   return { ok: true, status: "pending_payment" } as const;

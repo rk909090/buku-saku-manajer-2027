@@ -36,7 +36,7 @@ Tanpa variabel DB, halaman tetap jalan; `/api/ab` membalas 503 dan event tidak d
 
 Lihat [`.env.example`](.env.example). Di Hostinger diisi lewat hPanel → Node.js → Environment variables (jangan di-commit):
 `DB_HOST` (127.0.0.1), `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `AB_STATS_TOKEN`,
-`BITESHIP_API_KEY`, `XENDIT_SECRET_KEY`, `XENDIT_WEBHOOK_TOKEN`, `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD`.
+`BITESHIP_API_KEY`, `XENDIT_SECRET_KEY`, `XENDIT_WEBHOOK_TOKEN`, `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD`, `RESEND_API_KEY` (opsional `EMAIL_FROM`).
 
 ## Toko: keranjang, ongkir & pembayaran
 
@@ -56,6 +56,14 @@ Lihat [`.env.example`](.env.example). Di Hostinger diisi lewat hPanel → Node.j
 - **Minimal total pembayaran** (Pengaturan, default Rp10.000): potongan dikurangi bila total akan turun di bawahnya. Batas bawah per metode menurut Xendit: BCA VA & Alfamart/Indomaret Rp10.000, kartu Rp5.000, DANA/OVO Rp100, QRIS/ShopeePay/GoPay Rp1.
 - **Landing page saat diskon aktif**: harga coret + label “Hemat X%”, kartu hitung mundur di hero/penawaran/penutup, dan strip hitung mundur di bilah CTA mobile (`src/components/promo/promo-ui.tsx`). Data diambil `getLandingPromo()` (`use cache`, profil `minutes`, tag `landing-promo` yang di-invalidasi saat admin mengubah diskon/produk) sehingga ikut di HTML statis; detik dihitung di browser dari `ends_at` di DB. Diskon tanpa tanggal berakhir tampil tanpa hitung mundur. Saat waktu habis, harga kembali normal tanpa reload. JSON-LD `offers.price` mengikuti harga yang tampil (+`priceValidUntil`).
 - Xendit tidak punya tipe item diskon, jadi potongan dimasukkan ke harga item; jumlah item selalu = total tagihan (`src/lib/shop/pricing.ts`).
+
+## Email notifikasi (Resend)
+
+- Dikirim lewat Resend REST API (`src/lib/email/send.ts`) dari `noreply@humplus.com` (bisa diganti dengan env `EMAIL_FROM`). Butuh env `RESEND_API_KEY` dan domain humplus.com terverifikasi di Resend.
+- **Pelanggan**: pesanan dibuat (dengan tombol bayar), pembayaran diterima, diproses, dikirim (nomor resi), resi diubah, selesai, dibatalkan, kedaluwarsa (`src/lib/email/templates.ts`).
+- **Admin**: pesanan dibayar → semua email di Dashboard → Pengaturan → Notifikasi email (bisa banyak; opsional juga saat pesanan dibuat).
+- Dikirim dengan `after()` (setelah respons selesai) agar checkout/webhook tidak tertunda; `Idempotency-Key` per pesanan + jenis mencegah email ganda; hasil (terkirim/gagal/dilewati) dicatat di riwayat pesanan.
+- Pratinjau desain & tombol "Kirim email uji" ada di Dashboard → Pengaturan.
 
 ## Dashboard admin (`/admin`)
 

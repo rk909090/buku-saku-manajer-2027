@@ -17,6 +17,10 @@ export type ShopSettings = {
    * menurut tabel metode pembayaran Xendit; QRIS/ShopeePay/GoPay mulai Rp1, DANA/OVO Rp100, kartu Rp5.000.
    */
   min_order_total: number;
+  /** Email penerima notifikasi pesanan (admin), dipisah koma. */
+  notify_emails: string;
+  /** 1 = admin juga diberi tahu saat pesanan dibuat (belum dibayar). */
+  notify_on_pending: number;
 };
 
 /** Kurir umum untuk paket buku menurut dokumentasi Biteship; admin bisa mengubahnya. */
@@ -29,6 +33,8 @@ const DEFAULTS: ShopSettings = {
   couriers: DEFAULT_COURIERS,
   max_qty_per_item: 20,
   min_order_total: 10000,
+  notify_emails: "",
+  notify_on_pending: 0,
 };
 
 export async function getSettings(): Promise<ShopSettings> {

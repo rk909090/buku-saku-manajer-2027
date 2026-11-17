@@ -52,6 +52,8 @@ const input =
   "w-full rounded-xl border border-navy-900/15 bg-white px-4 py-3 text-[15px] text-ink placeholder:text-muted/70 transition outline-none focus:border-gold-500 focus:ring-4 focus:ring-gold-400/20 aria-[invalid=true]:border-promo-dark aria-[invalid=true]:ring-promo/10";
 
 const PHONE_RE = /^(\+?62|0)8\d{7,12}$/;
+/** Nomor HP hanya angka (karakter lain dibuang saat diketik / ditempel / diisi otomatis). */
+const digitsOnly = (v: string) => v.replace(/\D/g, "").slice(0, 15);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function validate(f: Form) {
@@ -121,8 +123,11 @@ export function CheckoutClient() {
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(FORM_KEY) || "null");
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- pulihkan data dari localStorage sekali saat mount
-      if (saved && typeof saved === "object") setForm({ ...EMPTY_FORM, ...saved });
+      if (saved && typeof saved === "object") {
+        const restored = { ...EMPTY_FORM, ...saved, phone: digitsOnly(String(saved.phone || "")), recipientPhone: digitsOnly(String(saved.recipientPhone || "")) };
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- pulihkan data dari localStorage sekali saat mount
+        setForm(restored);
+      }
     } catch {
       /* abaikan */
     }
@@ -554,7 +559,7 @@ export function CheckoutClient() {
                 <input className={input} type="email" inputMode="email" autoComplete="email" value={form.email} onChange={(e) => set("email", e.target.value)} onBlur={blur("email")} aria-invalid={!!show("email")} />
               </Field>
               <Field label="No. WhatsApp" hint="Contoh 0812xxxxxxx" error={show("phone")}>
-                <input className={input} type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} onBlur={blur("phone")} aria-invalid={!!show("phone")} />
+                <input className={input} type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={15} placeholder="08xxxxxxxxxx" autoComplete="tel" value={form.phone} onChange={(e) => set("phone", digitsOnly(e.target.value))} onBlur={blur("phone")} aria-invalid={!!show("phone")} />
               </Field>
             </div>
           </Section>
@@ -571,7 +576,7 @@ export function CheckoutClient() {
                     <input className={input} value={form.recipientName} onChange={(e) => set("recipientName", e.target.value)} onBlur={blur("recipientName")} aria-invalid={!!show("recipientName")} />
                   </Field>
                   <Field label="No. HP penerima" error={show("recipientPhone")}>
-                    <input className={input} type="tel" inputMode="tel" value={form.recipientPhone} onChange={(e) => set("recipientPhone", e.target.value)} onBlur={blur("recipientPhone")} aria-invalid={!!show("recipientPhone")} />
+                    <input className={input} type="tel" inputMode="numeric" pattern="[0-9]*" maxLength={15} placeholder="08xxxxxxxxxx" value={form.recipientPhone} onChange={(e) => set("recipientPhone", digitsOnly(e.target.value))} onBlur={blur("recipientPhone")} aria-invalid={!!show("recipientPhone")} />
                   </Field>
                 </div>
               )}

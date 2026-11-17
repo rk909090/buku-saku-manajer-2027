@@ -13,11 +13,11 @@ export const orderBody = z.object({
   customer: z.object({
     name: z.string().trim().min(2, "Nama minimal 2 karakter").max(120),
     email: z.string().trim().max(50, "Email maksimal 50 karakter").pipe(z.email("Email tidak valid")),
-    phone: z.string().trim().min(8).max(20),
+    phone: z.string().trim().regex(/^\d{8,15}$/, "Nomor WhatsApp hanya boleh angka (8–15 digit)"),
   }),
   shipping: z.object({
     recipientName: z.string().trim().min(2).max(120),
-    recipientPhone: z.string().trim().min(8).max(20),
+    recipientPhone: z.string().trim().regex(/^\d{8,15}$/, "Nomor HP penerima hanya boleh angka (8–15 digit)"),
     address: z.string().trim().min(10, "Alamat lengkap minimal 10 karakter").max(500),
     areaId: z.string().min(3).max(64),
     areaName: z.string().min(3).max(255),

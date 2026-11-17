@@ -13,7 +13,7 @@ type Overview = {
   byStatus: Record<string, number>;
   daily: { day: string; orders: number; revenue: number }[];
   recent: { id: number; order_number: string; status: string; total: number; created_at: string; customer_name: string }[];
-  setup: { integrations: { biteship: string; xendit: string; xenditWebhook: string }; shipping: { ok: boolean; reason: string } };
+  setup: { integrations: { biteship: string; xendit: string; xenditWebhook: string; resend: string }; shipping: { ok: boolean; reason: string } };
 };
 
 export function OverviewClient() {
@@ -38,6 +38,7 @@ export function OverviewClient() {
     { ok: d.setup.integrations.xendit !== "missing", label: `Xendit secret key${d.setup.integrations.xendit === "test" ? " (mode TEST)" : ""}`, fix: "Isi XENDIT_SECRET_KEY di hPanel" },
     { ok: d.setup.integrations.xenditWebhook !== "missing", label: "Token webhook Xendit", fix: "Isi XENDIT_WEBHOOK_TOKEN di hPanel" },
     { ok: d.setup.integrations.biteship !== "missing", label: `Biteship API key${d.setup.integrations.biteship === "test" ? " (mode TEST)" : ""}`, fix: "Isi BITESHIP_API_KEY di hPanel" },
+    { ok: d.setup.integrations.resend !== "missing", label: "Resend API key (email notifikasi)", fix: "Isi RESEND_API_KEY di hPanel & verifikasi domain humplus.com di Resend", href: "/admin/settings" },
     { ok: d.setup.shipping.ok, label: "Asal pengiriman, kurir & berat produk", fix: d.setup.shipping.reason, href: d.setup.shipping.reason.includes("Berat") ? "/admin/products" : "/admin/settings" },
   ];
   const allOk = checks.every((c) => c.ok);

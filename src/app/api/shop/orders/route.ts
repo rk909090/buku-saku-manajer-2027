@@ -3,6 +3,7 @@ import { isDbConfigured } from "@/lib/db";
 import { AB_COOKIE, AB_EXPERIMENT, AB_VISITOR_COOKIE, isAbVariant } from "@/lib/ab-config";
 import { clientIp, errorResponse, json, rateLimited, sameOrigin } from "@/lib/shop/http";
 import { createOrder } from "@/lib/shop/orders";
+import { queueAdminNewOrderEmail, queueCustomerEmail } from "@/lib/email/notify";
 import { orderBody } from "@/lib/shop/schemas";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     // Atribusi A/B: varian headline & ID pengunjung dari cookie (bukan dari body).
     const [exp, v] = (request.cookies.get(AB_COOKIE)?.value || "").split(".");
     const vid = request.cookies.get(AB_VISITOR_COOKIE)?.value || "";
-    const result = await createOrder({
+    const { orderId, ...result } = await createOrder({
       lines: parsed.data.lines,
       customer: parsed.data.customer,
       shipping: parsed.data.shipping,
@@ -31,6 +32,9 @@ export async function POST(request: NextRequest) {
       abVariant: exp === AB_EXPERIMENT && isAbVariant(v) ? v : null,
       visitorId: UUID_RE.test(vid) ? vid : null,
     });
+    // Email konfirmasi ke pembeli (+ admin bila diaktifkan) — dikirim setelah respons ini selesai.
+    queueCustomerEmail(orderId, "created");
+    queueAdminNewOrderEmail(orderId, false);
     return json(result, 201);
   } catch (e) {
     return errorResponse(e);

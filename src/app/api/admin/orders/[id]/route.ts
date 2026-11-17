@@ -5,6 +5,7 @@ import { getPool } from "@/lib/db";
 import { json, withAdmin } from "@/lib/shop/http";
 import { addEvent, confirmPaymentFromXendit } from "@/lib/shop/orders";
 import { ORDER_STATUS } from "@/lib/format";
+import { queueCustomerEmail } from "@/lib/email/notify";
 
 /** Transisi status yang boleh dilakukan admin. "paid" hanya dari Xendit (webhook / cek ulang). */
 const TRANSITIONS: Record<string, string[]> = {
@@ -73,6 +74,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/
     } else if (b.action === "tracking") {
       await pool.query("UPDATE orders SET tracking_number = ? WHERE id = ?", [b.tracking_number, id]);
       await addEvent(pool, id, "tracking", `No. resi: ${b.tracking_number}`, admin.email);
+      // Resi diubah setelah pesanan dikirim → beri tahu pembeli. (Sebelum dikirim, resi ikut di email "dikirim".)
+      if (["shipped", "completed"].includes(String(o.status)) && b.tracking_number !== o.tracking_number) {
+        queueCustomerEmail(id, "tracking");
+      }
     } else if (b.action === "recheck_payment") {
       if (!o.xendit_session_id) return json({ error: "Pesanan ini tidak punya sesi Xendit" }, 400);
       const r = await confirmPaymentFromXendit(String(o.xendit_session_id), `admin:${admin.email}`);
@@ -105,6 +110,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/
         `Status: ${ORDER_STATUS[from]?.label || from} → ${ORDER_STATUS[b.status].label}${b.status === "shipped" ? ` (resi ${tracking})` : ""}${b.note ? ` — ${b.note}` : ""}`,
         admin.email
       );
+      queueCustomerEmail(id, b.status);
     }
     return json(await load(id));
   });
