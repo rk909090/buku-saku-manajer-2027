@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { AB_EXPERIMENT, AB_QUERY_PARAM, type AbVariantId } from "@/lib/ab-config";
+import { GA_CTA_EVENT } from "@/lib/analytics";
 
 /**
  * Semua event A/B lewat fungsi `trackAbEvent`, yang:
  *   1. mengirim event ke /api/ab → tabel MySQL `ab_events`,
- *   2. push ke window.dataLayer (otomatis terbaca bila nanti dipasang GTM/GA4), dan
- *   3. menyimpan salinan di window.__abEvents untuk pengecekan manual.
+ *   2. untuk klik CTA: gtag('event', 'marketplace_click', …) → GA4 (key event),
+ *   3. push objek event ke window.dataLayer (untuk GTM bila nanti dipakai), dan
+ *   4. menyimpan salinan di window.__abEvents untuk pengecekan manual.
  */
 export type AbEvent = {
   event: "ab_headline_view" | "ab_cta_click";
@@ -22,6 +24,8 @@ export type AbEvent = {
 declare global {
   interface Window {
     dataLayer?: unknown[];
+    /** Didefinisikan oleh snippet Google tag di src/app/layout.tsx. */
+    gtag?: (...args: unknown[]) => void;
     __abEvents?: AbEvent[];
   }
 }
@@ -32,6 +36,17 @@ export function trackAbEvent(e: AbEvent) {
   window.__abEvents = window.__abEvents ?? [];
   window.__abEvents.push(e);
   if (process.env.NODE_ENV !== "production") console.info("[A/B]", e.event, e);
+
+  // GA4: klik tombol beli → event marketplace_click (key event).
+  // headline_variant & ab_experiment juga sudah di-set di level halaman (gtag('set')).
+  if (e.event === "ab_cta_click") {
+    window.gtag?.("event", GA_CTA_EVENT, {
+      marketplace: e.marketplace,
+      cta_placement: e.placement,
+      headline_variant: e.variant,
+      ab_experiment: e.experiment,
+    });
+  }
 
   // Kirim ke /api/ab (disimpan ke MySQL). sendBeacon tetap terkirim walau halaman ditutup.
   const payload = JSON.stringify(e);

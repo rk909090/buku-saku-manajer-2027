@@ -47,8 +47,23 @@ import {
 import { Carousel } from "@/components/interactive";
 import { AbTracker } from "@/components/ab-tracker";
 import type { HeadlineVariant } from "@/lib/content";
+import { AB_EXPERIMENT, AB_QUERY_PARAM } from "@/lib/ab-config";
 
 const plain = (s: string) => s.replace(/_\*\*|\*\*_|\*\*/g, "").replace(/(^|[\s(“‘])_|_(?=[\s.,)”’]|$)/g, "$1");
+
+function abInitScript(variantId: string) {
+  const exp = JSON.stringify(AB_EXPERIMENT);
+  const v = JSON.stringify(variantId);
+  const q = JSON.stringify(AB_QUERY_PARAM);
+  return [
+    "window.dataLayer=window.dataLayer||[];",
+    "function g(){dataLayer.push(arguments);}",
+    `var f=new URLSearchParams(location.search).has(${q});`,
+    `dataLayer.push({ab_experiment:${exp},headline_variant:${v},ab_forced:f});`,
+    `g('set',{headline_variant:${v},ab_experiment:${exp}});`,
+    "if(f){g('set',{traffic_type:'internal'});}",
+  ].join("");
+}
 
 /** Seluruh landing page. Hanya headline hero yang berbeda per varian A/B. */
 export function LandingPage({ variant }: { variant: HeadlineVariant }) {
@@ -65,6 +80,9 @@ export function LandingPage({ variant }: { variant: HeadlineVariant }) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
+      {/* Data varian A/B untuk GA4 (lihat src/lib/analytics.ts). Script inline ini jalan saat
+          HTML diparse, sebelum Google tag selesai dimuat, sehingga ikut di page_view. */}
+      <script dangerouslySetInnerHTML={{ __html: abInitScript(variant.id) }} />
       <SiteHeader />
       <main>
         <Hero variant={variant} />
