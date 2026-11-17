@@ -28,6 +28,8 @@ export type EmailOrder = {
   shippingCost: number;
   shippingDiscount: number;
   total: number;
+  /** Tautan WhatsApp toko (dari pengaturan admin). */
+  whatsappUrl: string;
 };
 
 export type CustomerEmailKind = "created" | "paid" | "processing" | "shipped" | "tracking" | "completed" | "cancelled" | "expired";
@@ -79,12 +81,13 @@ const PILL: Record<string, { bg: string; fg: string }> = {
 
 /* ───────────── Kerangka ───────────── */
 
-function layout(p: { preheader: string; pill: { text: string; tone: keyof typeof PILL }; title: string; intro: string; body: string; audience?: "customer" | "admin" }) {
+function layout(p: { preheader: string; pill: { text: string; tone: keyof typeof PILL }; title: string; intro: string; body: string; audience?: "customer" | "admin"; wa?: string }) {
+  const wa = esc(p.wa || WHATSAPP_URL);
   const pill = PILL[p.pill.tone];
   const footer =
     p.audience === "admin"
       ? `Notifikasi otomatis dashboard Buku Saku Manajer. Atur penerima di Dashboard → Pengaturan → Notifikasi email.`
-      : `Email ini dikirim otomatis dari alamat yang tidak dipantau — mohon tidak membalas. Ada pertanyaan? Hubungi kami lewat <a href="${WHATSAPP_URL}" style="color:${C.navy};font-weight:700;">WhatsApp</a>.`;
+      : `Email ini dikirim otomatis dari alamat yang tidak dipantau — mohon tidak membalas. Ada pertanyaan? Hubungi kami lewat <a href="${wa}" style="color:${C.navy};font-weight:700;">WhatsApp</a>.`;
   return `<!doctype html>
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>${esc(p.title)}</title></head>
 <body style="margin:0;padding:0;background:${C.page};-webkit-text-size-adjust:100%;">
@@ -174,6 +177,7 @@ function trackingBox(o: EmailOrder) {
 
 export function renderCustomerEmail(kind: CustomerEmailKind, o: EmailOrder) {
   const first = esc(o.customer.name.split(/\s+/)[0] || o.customer.name);
+  const wa = esc(o.whatsappUrl);
   const statusLink = `<p style="margin:14px 0 0;font-size:13px;color:${C.muted};">Status pesanan bisa dicek kapan saja di <a href="${esc(o.statusUrl)}" style="color:${C.navy};font-weight:700;">halaman pesanan Anda</a>.</p>`;
   let subject = "";
   let pill: { text: string; tone: keyof typeof PILL };
@@ -229,7 +233,7 @@ export function renderCustomerEmail(kind: CustomerEmailKind, o: EmailOrder) {
       pill = { text: "Selesai", tone: "green" };
       title = "Terima kasih telah berbelanja";
       intro = `Halo ${first}, pesanan Anda telah selesai. Semoga Buku Saku Manajer membantu Anda memimpin tim dengan lebih terarah.`;
-      body = p(`Ada pertanyaan tentang pesanan atau isi buku? Kami siap membantu lewat <a href="${WHATSAPP_URL}" style="color:${C.navy};font-weight:700;">WhatsApp</a>.`) + summary(o);
+      body = p(`Ada pertanyaan tentang pesanan atau isi buku? Kami siap membantu lewat <a href="${wa}" style="color:${C.navy};font-weight:700;">WhatsApp</a>.`) + summary(o);
       textLines = ["Pesanan Anda telah selesai. Terima kasih!"];
       break;
     case "cancelled":
@@ -237,7 +241,7 @@ export function renderCustomerEmail(kind: CustomerEmailKind, o: EmailOrder) {
       pill = { text: "Dibatalkan", tone: "red" };
       title = "Pesanan Anda dibatalkan";
       intro = `Halo ${first}, pesanan ${esc(o.orderNumber)} telah dibatalkan.`;
-      body = p(`Jika Anda sudah melakukan pembayaran atau merasa ini keliru, silakan hubungi kami lewat <a href="${WHATSAPP_URL}" style="color:${C.navy};font-weight:700;">WhatsApp</a> dengan menyebutkan nomor pesanan.`) + summary(o);
+      body = p(`Jika Anda sudah melakukan pembayaran atau merasa ini keliru, silakan hubungi kami lewat <a href="${wa}" style="color:${C.navy};font-weight:700;">WhatsApp</a> dengan menyebutkan nomor pesanan.`) + summary(o);
       textLines = ["Pesanan Anda telah dibatalkan. Jika sudah membayar atau merasa keliru, hubungi kami lewat WhatsApp."];
       break;
     case "expired":
@@ -250,7 +254,7 @@ export function renderCustomerEmail(kind: CustomerEmailKind, o: EmailOrder) {
       break;
   }
 
-  const html = layout({ preheader: `${title} · ${o.orderNumber}`, pill: pill!, title, intro, body });
+  const html = layout({ preheader: `${title} · ${o.orderNumber}`, pill: pill!, title, intro, body, wa: o.whatsappUrl });
   const text = [
     `${title} — ${o.orderNumber}`,
     "",
@@ -263,7 +267,7 @@ export function renderCustomerEmail(kind: CustomerEmailKind, o: EmailOrder) {
     `Total: ${formatRupiah(o.total)}`,
     "",
     `Status pesanan: ${o.statusUrl}`,
-    `WhatsApp: ${WHATSAPP_URL}`,
+    `WhatsApp: ${o.whatsappUrl}`,
     "",
     `${company.name} · bsm.humplus.com`,
   ].join("\n");
@@ -345,5 +349,6 @@ export function sampleOrder(): EmailOrder {
     shippingCost: 14000,
     shippingDiscount: 0,
     total: 134000,
+    whatsappUrl: WHATSAPP_URL,
   };
 }

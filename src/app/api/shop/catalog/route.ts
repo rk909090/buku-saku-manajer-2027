@@ -36,6 +36,7 @@ export async function GET() {
       }),
       maxQty: settings.max_qty_per_item,
       minOrderTotal: settings.min_order_total,
+      whatsapp: settings.whatsapp_number,
       couponsEnabled,
       checkout: {
         ready: ship.ok && integ.biteship !== "missing" && integ.xendit !== "missing" && integ.xenditWebhook !== "missing",

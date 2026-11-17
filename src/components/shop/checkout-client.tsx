@@ -8,6 +8,7 @@ import { AreaCombobox, type AreaValue } from "@/components/shop/area-combobox";
 import { formatDateTime, formatRupiah } from "@/lib/format";
 import { HomeLink } from "@/components/shop/home-link";
 import { CheckoutUnavailable } from "@/components/shop/checkout-unavailable";
+import { waLink } from "@/lib/whatsapp";
 import { BOOK_ITEM, gaEvent } from "@/lib/ga";
 
 type Product = {
@@ -21,7 +22,7 @@ type Product = {
   available: boolean;
   stock: number | null;
 };
-type Catalog = { products: Product[]; maxQty: number; minOrderTotal: number; couponsEnabled: boolean; checkout: { ready: boolean; reason: string } };
+type Catalog = { products: Product[]; maxQty: number; minOrderTotal: number; couponsEnabled: boolean; whatsapp: string; checkout: { ready: boolean; reason: string } };
 type AppliedCoupon = { code: string; label: string; description: string | null; type: string; discount: number; shippingDiscount: number | null; limitedByMinimum: boolean };
 const COUPON_RE = /^[A-Za-z0-9_-]{3,32}$/;
 type Rate = {
@@ -324,7 +325,7 @@ export function CheckoutClient() {
       </div>
     );
   }
-  if (!catalog.checkout.ready) return <CheckoutUnavailable />;
+  if (!catalog.checkout.ready) return <CheckoutUnavailable whatsappUrl={waLink(catalog.whatsapp)} />;
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-md py-20 text-center">

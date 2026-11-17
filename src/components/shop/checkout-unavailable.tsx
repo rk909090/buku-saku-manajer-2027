@@ -11,7 +11,8 @@ import { gaEvent } from "@/lib/ga";
  * admin melihatnya di dashboard (/admin → daftar persiapan). Pembeli tetap bisa membeli lewat
  * toko resmi di marketplace atau WhatsApp, sehingga penjualan tidak terhenti selama persiapan.
  */
-export function CheckoutUnavailable() {
+/** `whatsappUrl` dari pengaturan admin (lewat API katalog); bila katalog gagal dimuat, pakai nomor cadangan. */
+export function CheckoutUnavailable({ whatsappUrl = WHATSAPP_URL }: { whatsappUrl?: string }) {
   const track = (marketplace: string) => gaEvent("marketplace_click", { marketplace, cta_placement: "checkout_fallback" });
   const btn = "flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2";
   return (
@@ -30,7 +31,7 @@ export function CheckoutUnavailable() {
         <a href={LEGACY_MARKETPLACES.tokopedia} target="_blank" rel="noopener" onClick={() => track("tokopedia")} className={`${btn} bg-tokopedia-dark text-white hover:brightness-95 focus-visible:outline-tokopedia-dark`}>
           <Store className="size-5" /> Beli di Tokopedia
         </a>
-        <a href={WHATSAPP_URL} target="_blank" rel="noopener" onClick={() => track("whatsapp")} className={`${btn} border border-navy-900/15 bg-white text-navy-900 hover:bg-navy-900/5 focus-visible:outline-navy-900`}>
+        <a href={whatsappUrl} target="_blank" rel="noopener" onClick={() => track("whatsapp")} className={`${btn} border border-navy-900/15 bg-white text-navy-900 hover:bg-navy-900/5 focus-visible:outline-navy-900`}>
           <MessageCircle className="size-5" /> Tanya via WhatsApp
         </a>
       </div>

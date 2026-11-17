@@ -19,7 +19,10 @@ export const LEGACY_MARKETPLACES = {
   tokopedia: "https://www.tokopedia.com/humplusstore/buku-saku-manajer-edisi-kedua-terbaru",
 } as const;
 
-/** Tautan WhatsApp dari tombol chat mengambang di [S1]. */
+/**
+ * Tautan WhatsApp CADANGAN (nomor dari [S1]). Nomor aktif diatur admin di Dashboard → Pengaturan dan
+ * dibaca lewat getSettings()/getPublicContact(); ini hanya dipakai bila database tidak tersedia.
+ */
 export const WHATSAPP_URL = "https://wa.me/6287840848566";
 
 export const price = "Rp120.000";

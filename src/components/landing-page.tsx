@@ -7,7 +7,6 @@ import toc from "../../public/images/bsm-daftar-isi.webp";
 import authorPhoto from "../../public/images/armala-pegang-buku-saku.jpeg";
 import logo from "../../public/images/logo-hpi.png";
 import {
-  WHATSAPP_URL,
   aboutBook,
   audience,
   author,
@@ -49,6 +48,8 @@ import { GoogleTag } from "@/components/google-tag";
 import { CartLink } from "@/components/shop/cart-link";
 import { BOOK_FACTS } from "@/lib/seo";
 import { getLandingPromo } from "@/lib/shop/landing-promo";
+import { getPublicWhatsapp } from "@/lib/shop/public-contact";
+import { waLink } from "@/lib/whatsapp";
 import { currentDeal, type LandingPromo } from "@/lib/promo-deal";
 import { MobilePromoPrice, MobilePromoStrip, PromoCountdown, PromoPriceText, PromoPriceTag } from "@/components/promo/promo-ui";
 
@@ -67,7 +68,8 @@ function abInitScript(variantId: string) {
 /** Seluruh landing page. Hanya headline hero yang berbeda per varian A/B. */
 export async function LandingPage({ variant }: { variant: HeadlineVariant }) {
   // Diskon produk (cache ±1 menit + invalidasi saat admin mengubah diskon) — ikut di HTML statis.
-  const promo = await getLandingPromo();
+  // Nomor WhatsApp dari pengaturan admin (cache ±1 menit, diperbarui segera saat disimpan).
+  const [promo, whatsapp] = await Promise.all([getLandingPromo(), getPublicWhatsapp()]);
   // "<" di-escape agar teks JSON tidak bisa menutup tag <script>.
   const deal = currentDeal(promo, null); // diskon yang berlaku saat data diambil server
   const offer = promo ? { price: deal ? deal.price : promo.basePrice, validUntil: deal?.endsAt ? new Date(deal.endsAt) : null } : undefined;
@@ -99,7 +101,7 @@ export async function LandingPage({ variant }: { variant: HeadlineVariant }) {
       </main>
       <SiteFooter />
       <MobileCtaBar promo={promo} />
-      <WhatsAppButton />
+      <WhatsAppButton href={waLink(whatsapp)} />
       <AbTracker variant={variant.id} />
     </>
   );
@@ -788,10 +790,10 @@ function MobileCtaBar({ promo }: { promo: LandingPromo | null }) {
   );
 }
 
-function WhatsAppButton() {
+function WhatsAppButton({ href }: { href: string }) {
   return (
     <a
-      href={WHATSAPP_URL}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat via WhatsApp"

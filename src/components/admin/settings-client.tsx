@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, CircleAlert } from "lucide-react";
 import { adminFetch } from "@/components/admin/api";
+import { formatWhatsapp, normalizeWhatsapp, waLink } from "@/lib/whatsapp";
 import { AreaCombobox, type AreaValue } from "@/components/shop/area-combobox";
 import { Alert, Badge, Button, Card, Field, inputCls, Loading, PageHeader } from "@/components/admin/ui";
 
-type Settings = { origin_area_id: string; origin_area_name: string; origin_postal_code: string; couriers: string; max_qty_per_item: number; min_order_total: number; notify_emails: string; notify_on_pending: number };
+type Settings = { origin_area_id: string; origin_area_name: string; origin_postal_code: string; couriers: string; max_qty_per_item: number; min_order_total: number; notify_emails: string; notify_on_pending: number; whatsapp_number: string };
 type Resp = { settings: Settings; defaultCouriers: string; integrations: { biteship: string; xendit: string; xenditWebhook: string; resend: string } };
 
 /** Kode kurir dari dokumentasi Biteship (couriers overview). */
@@ -123,6 +124,7 @@ export function SettingsClient() {
         </Card>
 
         <div className="space-y-6">
+          <WhatsappCard initial={d.settings.whatsapp_number} />
           <NotificationCard
             emails={notifyEmails}
             setEmails={setNotifyEmails}
@@ -259,6 +261,73 @@ function NotificationCard({
           </p>
         </div>
       </div>
+    </Card>
+  );
+}
+
+function WhatsappCard({ initial }: { initial: string }) {
+  const [saved, setSaved] = useState(initial);
+  const [value, setValue] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  const preview = normalizeWhatsapp(value);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    try {
+      const j = await adminFetch<{ settings: Settings }>("/api/admin/settings/contact", {
+        method: "PUT",
+        body: JSON.stringify({ whatsapp_number: value }),
+      });
+      setSaved(j.settings.whatsapp_number);
+      setValue(j.settings.whatsapp_number);
+      setMsg({ tone: "green", text: "Nomor WhatsApp tersimpan dan langsung dipakai di website & email" });
+    } catch (e2) {
+      setMsg({ tone: "red", text: (e2 as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card title="Kontak WhatsApp">
+      <form onSubmit={save} className="space-y-4">
+        {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+        <Field
+          label="Nomor WhatsApp toko"
+          hint="Dipakai di tombol chat landing page, halaman checkout, dan email pelanggan. Boleh ditulis 08… atau 62…"
+        >
+          <input
+            className={inputCls}
+            type="tel"
+            inputMode="numeric"
+            maxLength={20}
+            value={value}
+            onChange={(e) => setValue(e.target.value.replace(/[^\d+\s-]/g, ""))}
+            placeholder="087840848566"
+            required
+          />
+        </Field>
+        <p className="text-xs text-slate-500">
+          {preview ? (
+            <>
+              Akan disimpan sebagai <b className="text-slate-800">{formatWhatsapp(preview)}</b>
+            </>
+          ) : (
+            <span className="text-rose-700">Nomor belum valid (10–15 digit)</span>
+          )}
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" loading={busy} disabled={!preview || preview === saved}>
+            Simpan nomor
+          </Button>
+          <a href={waLink(saved)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-emerald-700 hover:underline">
+            Coba buka WhatsApp ({formatWhatsapp(saved)}) ↗
+          </a>
+        </div>
+      </form>
     </Card>
   );
 }

@@ -21,9 +21,13 @@ export type ShopSettings = {
   notify_emails: string;
   /** 1 = admin juga diberi tahu saat pesanan dibuat (belum dibayar). */
   notify_on_pending: number;
+  /** Nomor WhatsApp toko (format internasional tanpa +, mis. 6287840848566). */
+  whatsapp_number: string;
 };
 
 /** Kurir umum untuk paket buku menurut dokumentasi Biteship; admin bisa mengubahnya. */
+import { DEFAULT_WHATSAPP } from "@/lib/whatsapp";
+
 export const DEFAULT_COURIERS = "jne,jnt,sicepat,anteraja,pos,idexpress,sap,tiki,ninja,lion";
 
 const DEFAULTS: ShopSettings = {
@@ -35,6 +39,7 @@ const DEFAULTS: ShopSettings = {
   min_order_total: 10000,
   notify_emails: "",
   notify_on_pending: 0,
+  whatsapp_number: DEFAULT_WHATSAPP,
 };
 
 export async function getSettings(): Promise<ShopSettings> {

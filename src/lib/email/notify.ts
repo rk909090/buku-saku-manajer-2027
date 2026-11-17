@@ -4,6 +4,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { getPool } from "@/lib/db";
 import { SITE_ORIGIN } from "@/lib/shop/env";
 import { getSettings } from "@/lib/shop/settings";
+import { waLink } from "@/lib/whatsapp";
 import { sendEmail } from "@/lib/email/send";
 import { CUSTOMER_EMAIL_LABEL, renderAdminNewOrder, renderCustomerEmail, type CustomerEmailKind, type EmailOrder } from "@/lib/email/templates";
 
@@ -53,6 +54,7 @@ export async function loadEmailOrder(orderId: number): Promise<EmailOrder | null
     "SELECT name, quantity, unit_price, original_price FROM order_items WHERE order_id = ? ORDER BY id",
     [orderId]
   );
+  const settings = await getSettings();
   return {
     id: Number(o.id),
     orderNumber: String(o.order_number),
@@ -87,6 +89,7 @@ export async function loadEmailOrder(orderId: number): Promise<EmailOrder | null
     shippingCost: Number(o.shipping_cost),
     shippingDiscount: Number(o.shipping_discount || 0),
     total: Number(o.total),
+    whatsappUrl: waLink(settings.whatsapp_number),
   };
 }
 

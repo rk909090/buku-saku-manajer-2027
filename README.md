@@ -65,6 +65,12 @@ Lihat [`.env.example`](.env.example). Di Hostinger diisi lewat hPanel → Node.j
 - Dikirim dengan `after()` (setelah respons selesai) agar checkout/webhook tidak tertunda; `Idempotency-Key` per pesanan + jenis mencegah email ganda; hasil (terkirim/gagal/dilewati) dicatat di riwayat pesanan.
 - Pratinjau desain & tombol "Kirim email uji" ada di Dashboard → Pengaturan.
 
+## Nomor WhatsApp toko
+
+- Diatur admin di Dashboard → Pengaturan → Kontak WhatsApp (input 08… atau 62…, disimpan sebagai 62…).
+- Dipakai di tombol chat landing page (`getPublicWhatsapp()`, `use cache` + tag `site-contact`, langsung diperbarui saat disimpan), tombol WhatsApp di checkout (lewat `/api/shop/catalog`), dan email pelanggan.
+- `WHATSAPP_URL` di `content.ts` hanya cadangan bila database tidak tersedia.
+
 ## Dashboard admin (`/admin`)
 
 - Menu sidebar kiri: Ringkasan, Pesanan, Pelanggan, Produk, Diskon & Kupon, Analitik A/B, Pengaturan, Admin & Akun.
