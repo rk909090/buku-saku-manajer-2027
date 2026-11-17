@@ -353,7 +353,7 @@ export function CheckoutClient() {
         {items.map((i) => (
           <li key={i.slug} className="flex gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element -- gambar statis kecil dari /public */}
-            <img src={i.product.image_url || "/images/bsm-cover.png"} alt="" className="h-20 w-auto shrink-0 rounded-md" />
+            <img src={i.product.image_url || "/images/buku/sampul-depan.jpg"} alt="" className="h-20 w-auto shrink-0 rounded-md" />
             <div className="min-w-0 flex-1">
               <p className="leading-snug font-semibold text-navy-900">{i.product.name}</p>
               <p className="mt-0.5 text-sm">

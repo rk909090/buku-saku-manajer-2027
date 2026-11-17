@@ -12,6 +12,13 @@ Semua copywriting dan foto diambil dari:
 
 Teks ada di [`src/lib/content.ts`](src/lib/content.ts). Semua tombol beli menuju keranjang situs (`/checkout?add=buku-saku-manajer`); teks harga Rp120.000 + “Belum termasuk ongkos kirim”. Harga yang ditagih diambil dari tabel `products` (diubah di dashboard) — samakan teks `price` di `content.ts` bila harga diubah.
 
+## Foto buku (foto asli)
+
+- `public/images/buku/` berisi foto asli dari pemilik (17 Nov 2026), dikompres ke WebP (sampul depan JPG untuk email & gambar OG). Render 3D lama (`bsm-cover.png`, `bsm-mockup.webp`) tidak dipakai lagi di halaman; filenya dibiarkan agar gambar di email yang sudah terkirim tidak rusak.
+- Hero: `sampul-foto.webp` · Penawaran: `tumpukan-buku.webp` · Penutup, produk/checkout, email, OG & JSON-LD: `sampul-depan.jpg`.
+- Bagian "Intip Isi Buku" (`src/components/book-preview.tsx`): spread + close-up halaman 70–71 (goal), 116–117 (delegasi), 138–139 (sistem kontrol), 192–193 (mengukur kinerja/KPI), dengan jendela pembesar (ukuran asli, bisa digeser). Ringkasan kartu hanya berisi hal yang terlihat di foto.
+- `bsm-isi-smart.webp` (hal. 78–79, SMART) dan `bsm-daftar-isi.webp` berasal dari sumber [S1]; nomor halaman di daftar isi tersebut tidak cocok dengan cetakan yang difoto pemilik.
+
 ## Menjalankan secara lokal
 
 ```bash

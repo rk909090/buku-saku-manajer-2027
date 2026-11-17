@@ -84,7 +84,7 @@ function ProductForm({ product, onSaved }: { product: Product; onSaved: (p: Prod
     <Card title={product.name} className="mb-6">
       <form onSubmit={save} className="grid gap-6 lg:grid-cols-[160px_1fr]">
         {/* eslint-disable-next-line @next/next/no-img-element -- gambar statis kecil dari /public */}
-        <img src={product.image_url || "/images/bsm-cover.png"} alt="" className="mx-auto w-32 lg:w-full" />
+        <img src={product.image_url || "/images/buku/sampul-depan.jpg"} alt="" className="mx-auto w-32 lg:w-full" />
         <div className="space-y-5">
           {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
           {!product.weight_g && (

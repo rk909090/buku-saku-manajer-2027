@@ -261,6 +261,8 @@ async function seedShop() {
   const pool = getPool();
   await pool.query(
     `INSERT IGNORE INTO products (slug, name, price, image_url) VALUES (?, ?, ?, ?)`,
-    ["buku-saku-manajer", "Buku Saku Manajer — Edisi Kedua", 120000, "/images/bsm-cover.png"]
+    ["buku-saku-manajer", "Buku Saku Manajer — Edisi Kedua", 120000, "/images/buku/sampul-depan.jpg"]
   );
+  // 17 Nov 2026: gambar produk diganti dari render 3D ke foto asli sampul (hanya bila masih memakai gambar lama).
+  await pool.query("UPDATE products SET image_url = ? WHERE image_url = ?", ["/images/buku/sampul-depan.jpg", "/images/bsm-cover.png"]);
 }

@@ -1,7 +1,17 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
-import cover from "../../public/images/bsm-cover.png";
-import mockup from "../../public/images/bsm-mockup.webp";
+// Foto asli buku (dipotret pemilik; dikompres WebP — lihat README "Foto buku").
+import coverPhoto from "../../public/images/buku/sampul-foto.webp";
+import coverFront from "../../public/images/buku/sampul-depan.jpg";
+import stackPhoto from "../../public/images/buku/tumpukan-buku.webp";
+import isiGoal from "../../public/images/buku/isi-bab2-hal-70-71.webp";
+import isiGoalPage from "../../public/images/buku/isi-bab2-hal-70.webp";
+import isiDelegasi from "../../public/images/buku/isi-bab4-hal-116-117.webp";
+import isiDelegasiPage from "../../public/images/buku/isi-bab4-hal-116.webp";
+import isiKontrol from "../../public/images/buku/isi-bab3-hal-138-139.webp";
+import isiKontrolPage from "../../public/images/buku/isi-bab3-hal-138.webp";
+import isiKinerja from "../../public/images/buku/isi-bab5-hal-192-193.webp";
+import isiKinerjaPage from "../../public/images/buku/isi-bab5-hal-192.webp";
 import interior from "../../public/images/bsm-isi-smart.webp";
 import toc from "../../public/images/bsm-daftar-isi.webp";
 import authorPhoto from "../../public/images/armala-pegang-buku-saku.jpeg";
@@ -40,6 +50,7 @@ import {
   WhatsAppIcon,
 } from "@/components/ui";
 import { Carousel } from "@/components/interactive";
+import { BookPreview, type PreviewTopic } from "@/components/book-preview";
 import { AbTracker } from "@/components/ab-tracker";
 import type { HeadlineVariant } from "@/lib/content";
 import { AB_EXPERIMENT, AB_QUERY_PARAM } from "@/lib/ab-config";
@@ -90,6 +101,7 @@ export async function LandingPage({ variant }: { variant: HeadlineVariant }) {
         <Audience />
         <AboutBook />
         <Chapters />
+        <InsideBook />
         <Readers />
         <Outcomes />
         <Author />
@@ -197,15 +209,19 @@ function Hero({ variant, promo }: { variant: HeadlineVariant; promo: LandingProm
           </div>
         </div>
 
-        <div className="relative mx-auto w-full max-w-[20rem] sm:max-w-sm lg:max-w-[25rem]">
-          <div aria-hidden="true" className="absolute inset-x-6 bottom-2 h-10 rounded-[50%] bg-black/60 blur-2xl" />
+        <div className="relative mx-auto w-full max-w-[18rem] sm:max-w-xs lg:max-w-[23rem]">
+          <div aria-hidden="true" className="absolute -inset-5 rounded-[2.5rem] bg-gold-500/25 blur-3xl" />
           <Image
-            src={cover}
-            alt="Sampul Buku Saku Manajer Edisi Kedua karya Armala, Human Plus Institute"
-            className="float-book relative h-auto w-full drop-shadow-[0_30px_40px_rgb(0_0_0/0.55)]"
-            sizes="(max-width: 640px) 320px, 400px"
+            src={coverPhoto}
+            alt="Foto asli Buku Saku Manajer Edisi Kedua karya Armala terbitan Human Plus Institute, dengan beberapa eksemplar terbungkus plastik di belakangnya"
+            className="relative h-auto w-full rounded-[2rem] shadow-[0_35px_60px_-15px_rgb(0_0_0/0.75)] ring-1 ring-white/15"
+            sizes="(max-width: 640px) 288px, (max-width: 1024px) 320px, 368px"
+            placeholder="blur"
             preload
           />
+          <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3.5 py-1 text-xs font-bold whitespace-nowrap text-navy-900 shadow-lg">
+            Foto asli buku
+          </span>
         </div>
       </Container>
       <div aria-hidden="true" className="h-px bg-gradient-to-r from-transparent via-gold-500/60 to-transparent" />
@@ -368,6 +384,74 @@ function AboutBook() {
             ))}
           </ul>
         </div>
+      </Container>
+    </section>
+  );
+}
+
+/* ───────────────────────── Intip Isi Buku (foto asli) ───────────────────────── */
+
+/**
+ * Foto asli halaman buku. Ringkasan ditulis HANYA dari isi yang terlihat di foto tersebut.
+ * Urutan mengikuti nomor halaman buku.
+ */
+const insideBookTopics: PreviewTopic[] = [
+  {
+    id: "goal",
+    title: "Menentukan Goal (Sasaran & Target)",
+    pages: "Halaman 70–71",
+    summary: "Mengapa sasaran harus selalu berpasangan dengan target — dengan contoh omzet penjualan dan analogi mendaki Gunung Ciremai.",
+    shots: [
+      { src: isiGoal, label: "Hal. 70–71", alt: "Foto halaman 70–71 Buku Saku Manajer tentang menentukan goal: sasaran dan target, dengan ilustrasi pendakian Gunung Ciremai" },
+      { src: isiGoalPage, label: "Hal. 70 (dekat)", alt: "Foto dekat halaman 70 Buku Saku Manajer: definisi sasaran dan target" },
+    ],
+  },
+  {
+    id: "delegasi",
+    title: "Delegasi yang Efektif",
+    pages: "Halaman 116–117",
+    summary: "Beda akuntabilitas dan tanggung jawab saat mendelegasikan, dua alasan manajer enggan mendelegasikan, dan tugas yang bisa didelegasikan.",
+    shots: [
+      { src: isiDelegasi, label: "Hal. 116–117", alt: "Foto halaman 116–117 Buku Saku Manajer tentang delegasi yang efektif" },
+      { src: isiDelegasiPage, label: "Hal. 116 (dekat)", alt: "Foto dekat halaman 116 Buku Saku Manajer: akuntabilitas dan tanggung jawab dalam pendelegasian" },
+    ],
+  },
+  {
+    id: "kontrol",
+    title: "Sistem Kontrol",
+    pages: "Halaman 138–139",
+    summary: "Fungsi pengawasan & pengendalian, peran manajer dan supervisor (SOP & WI), serta 4 langkah agar fungsi kontrol berjalan efektif.",
+    shots: [
+      { src: isiKontrol, label: "Hal. 138–139", alt: "Foto halaman 138–139 Buku Saku Manajer tentang sistem kontrol: empat langkah fungsi kontrol" },
+      { src: isiKontrolPage, label: "Hal. 138 (dekat)", alt: "Foto dekat halaman 138 Buku Saku Manajer: fungsi pengawasan dan pengendalian" },
+    ],
+  },
+  {
+    id: "kinerja",
+    title: "Mengukur Kinerja (KPI)",
+    pages: "Halaman 192–193",
+    summary: "Mengapa kinerja harus diukur dengan sasaran dan standar yang jelas, bukan penilaian subjektif — dari prinsip Kaplan & Norton hingga contoh rapor sekolah.",
+    shots: [
+      { src: isiKinerja, label: "Hal. 192–193", alt: "Foto halaman 192–193 Buku Saku Manajer tentang mengukur kinerja" },
+      { src: isiKinerjaPage, label: "Hal. 192 (dekat)", alt: "Foto dekat halaman 192 Buku Saku Manajer: prinsip mengukur kinerja" },
+    ],
+  },
+];
+
+function InsideBook() {
+  return (
+    <section id="intip-isi" className="scroll-mt-20 bg-navy-950 py-16 text-white sm:py-24">
+      <Container>
+        <div className="mx-auto max-w-3xl text-center">
+          <Eyebrow tone="dark">Intip Isi Buku</Eyebrow>
+          <SectionHeading tone="dark" className="mt-3">
+            Lihat Langsung Halaman Aslinya Sebelum Membeli.
+          </SectionHeading>
+          <p className="mt-5 text-lg leading-relaxed text-white/70">
+            Foto asli beberapa halaman Buku Saku Manajer. Ketuk foto untuk memperbesar dan membaca isinya.
+          </p>
+        </div>
+        <BookPreview topics={insideBookTopics} />
       </Container>
     </section>
   );
@@ -654,10 +738,11 @@ function Offer({ promo }: { promo: LandingPromo | null }) {
           <div aria-hidden="true" className="absolute -top-24 -left-24 size-72 rounded-full bg-gold-500/20 blur-3xl" />
           <div className="relative grid items-center gap-8 p-6 sm:p-10 md:grid-cols-[0.9fr_1.1fr] lg:gap-12 lg:p-12">
             <Image
-              src={mockup}
-              alt="Buku Saku Manajer Edisi Kedua"
-              className="mx-auto h-auto w-full max-w-sm rounded-3xl"
-              sizes="(max-width: 768px) 100vw, 420px"
+              src={stackPhoto}
+              alt="Foto asli beberapa eksemplar Buku Saku Manajer Edisi Kedua di atas meja kayu"
+              className="mx-auto h-auto w-full max-w-sm rounded-3xl object-cover ring-1 ring-white/10"
+              sizes="(max-width: 768px) 92vw, 420px"
+              placeholder="blur"
             />
             <div>
               <h2 className="font-display text-3xl leading-tight font-bold sm:text-4xl">{offer.title}</h2>
@@ -733,10 +818,11 @@ function Closing({ promo }: { promo: LandingPromo | null }) {
         <SectionHeading tone="dark">{closing.heading}</SectionHeading>
         <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-white/75">{closing.lead}</p>
         <Image
-          src={cover}
-          alt="Buku Saku Manajer"
-          className="mx-auto mt-10 h-auto w-48 drop-shadow-[0_20px_30px_rgb(0_0_0/0.5)] sm:w-56"
-          sizes="224px"
+          src={coverFront}
+          alt="Sampul depan Buku Saku Manajer Edisi Kedua (foto asli)"
+          className="mx-auto mt-10 h-auto w-44 -rotate-2 rounded-xl shadow-[0_25px_45px_-12px_rgb(0_0_0/0.7)] ring-1 ring-white/15 sm:w-52"
+          sizes="208px"
+          placeholder="blur"
         />
         <div className="mt-8 flex flex-col items-center gap-6">
           <PromoPriceTag promo={promo} align="center" />

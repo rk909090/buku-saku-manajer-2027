@@ -7,8 +7,9 @@ export const alt = "Buku Saku Manajer Edisi Kedua karya Armala — Human Plus In
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const cover = await readFile(join(process.cwd(), "public/images/bsm-cover.png"), "base64");
-const coverSrc = `data:image/png;base64,${cover}`;
+// Foto asli sampul depan (bukan render 3D).
+const cover = await readFile(join(process.cwd(), "public/images/buku/sampul-depan.jpg"), "base64");
+const coverSrc = `data:image/jpeg;base64,${cover}`;
 
 export default async function Image() {
   return new ImageResponse(
@@ -36,11 +37,11 @@ export default async function Image() {
             Panduan praktis 6 bab untuk Supervisor, Manager, Direktur &amp; Business Owner
           </div>
           <div style={{ display: "flex", marginTop: 36, fontSize: 28, color: "#e5bb63" }}>
-            Human Plus Institute · Tersedia di Shopee &amp; Tokopedia
+            Human Plus Institute · Pesan langsung di bsm.humplus.com
           </div>
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse (satori) butuh <img> */}
-        <img src={coverSrc} height={540} alt="" style={{ objectFit: "contain" }} />
+        <img src={coverSrc} width={318} height={500} alt="" style={{ borderRadius: 16, boxShadow: "0 30px 60px rgba(0,0,0,0.55)", transform: "rotate(-3deg)" }} />
       </div>
     ),
     { ...size }

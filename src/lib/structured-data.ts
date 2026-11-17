@@ -24,8 +24,10 @@ const id = {
  * dengan harga yang terlihat. Tanpa itu dipakai harga dari content.ts.
  */
 export function buildStructuredData(offer?: { price: number; validUntil: Date | null }) {
-  const cover = `${SITE_URL}/images/bsm-cover.png`;
-  const mockup = `${SITE_URL}/images/bsm-mockup.webp`;
+  // Foto asli buku (bukan render 3D).
+  const cover = `${SITE_URL}/images/buku/sampul-depan.jpg`;
+  const coverPhoto = `${SITE_URL}/images/buku/sampul-foto.webp`;
+  const stack = `${SITE_URL}/images/buku/tumpukan-buku.webp`;
 
   return {
     "@context": "https://schema.org",
@@ -48,7 +50,7 @@ export function buildStructuredData(offer?: { price: number; validUntil: Date | 
         isPartOf: { "@id": id.website },
         about: { "@id": id.book },
         mainEntity: { "@id": id.book },
-        primaryImageOfPage: { "@type": "ImageObject", url: cover, width: 560, height: 778 },
+        primaryImageOfPage: { "@type": "ImageObject", url: cover, width: 622, height: 978 },
       },
       {
         "@type": "Organization",
@@ -90,7 +92,7 @@ export function buildStructuredData(offer?: { price: number; validUntil: Date | 
         description: aboutBook.lead,
         inLanguage: "id",
         genre: "Manajemen",
-        image: [cover, mockup],
+        image: [cover, coverPhoto, stack],
         author: { "@id": id.author },
         publisher: { "@id": id.org },
         brand: { "@type": "Brand", name: ORGANIZATION.name },

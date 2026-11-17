@@ -131,7 +131,7 @@ function summary(o: EmailOrder) {
     .map(
       (i) => `<tr>
       <td style="padding:12px 0;border-bottom:1px solid ${C.line};vertical-align:top;">
-        <img src="${SITE}/images/bsm-cover.png" width="44" alt="" style="display:block;border:0;border-radius:4px;">
+        <img src="${SITE}/images/buku/sampul-depan.jpg" width="44" alt="" style="display:block;border:0;border-radius:4px;">
       </td>
       <td style="padding:12px 12px;border-bottom:1px solid ${C.line};vertical-align:top;">
         <div style="font-weight:700;color:${C.ink};">${esc(i.name)}</div>
