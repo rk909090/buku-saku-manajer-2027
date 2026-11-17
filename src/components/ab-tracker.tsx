@@ -14,6 +14,7 @@ export type AbEvent = {
   experiment: string;
   variant: AbVariantId;
   placement?: string;
+  marketplace?: string;
   forced?: boolean;
   ts: number;
 };
@@ -51,7 +52,7 @@ export function trackAbEvent(e: AbEvent) {
 
 /**
  * Mencatat tayangan headline sekali per pemuatan halaman, dan setiap klik
- * tombol CTA (elemen bertanda data-cta) beserta posisinya.
+ * tombol CTA (elemen bertanda data-cta) beserta posisinya dan marketplace-nya (data-mp).
  * Saat varian dipaksa lewat ?hl=, event ditandai `forced: true` (untuk QA,
  * nantinya dikecualikan dari hasil) dan muncul label kecil penanda varian.
  */
@@ -69,7 +70,13 @@ export function AbTracker({ variant }: { variant: AbVariantId }) {
     function onClick(ev: MouseEvent) {
       const el = (ev.target as Element | null)?.closest<HTMLElement>("[data-cta]");
       if (!el) return;
-      trackAbEvent({ ...base, event: "ab_cta_click", placement: el.dataset.cta, ts: Date.now() });
+      trackAbEvent({
+        ...base,
+        event: "ab_cta_click",
+        placement: el.dataset.cta,
+        marketplace: el.dataset.mp,
+        ts: Date.now(),
+      });
     }
     // "auxclick" menangkap klik tengah (buka di tab baru)
     document.addEventListener("click", onClick, { capture: true });

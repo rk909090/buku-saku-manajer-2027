@@ -37,11 +37,21 @@ export async function GET(request: NextRequest) {
       [experiment]
     );
     const [placements] = await pool.query(
-      `SELECT variant, placement, COUNT(*) AS clicks
+      `SELECT variant, placement, marketplace, COUNT(*) AS clicks
          FROM ab_events
         WHERE experiment = ? AND forced = 0 AND event = 'ab_cta_click'
-        GROUP BY variant, placement
+        GROUP BY variant, placement, marketplace
         ORDER BY variant, clicks DESC`,
+      [experiment]
+    );
+    const [marketplaces] = await pool.query(
+      `SELECT variant, marketplace,
+              COUNT(*)                   AS clicks,
+              COUNT(DISTINCT visitor_id) AS clickers
+         FROM ab_events
+        WHERE experiment = ? AND forced = 0 AND event = 'ab_cta_click'
+        GROUP BY variant, marketplace
+        ORDER BY variant, marketplace`,
       [experiment]
     );
     const [devices] = await pool.query(
@@ -76,9 +86,10 @@ export async function GET(request: NextRequest) {
     return Response.json(
       {
         experiment,
-        note: "conversion_rate = pengunjung unik yang klik CTA Shopee / pengunjung unik yang melihat headline. Event pratinjau (?hl=) tidak dihitung.",
+        note: "conversion_rate = pengunjung unik yang klik CTA (Shopee atau Tokopedia) / pengunjung unik yang melihat headline. Event pratinjau (?hl=) tidak dihitung.",
         ...range,
         variants,
+        clicks_by_marketplace: marketplaces,
         clicks_by_placement: placements,
         by_device: devices,
       },

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ORDER_URL, cta, price } from "@/lib/content";
+import { MARKETPLACES, cta, price, priceNote, type Marketplace } from "@/lib/content";
 
 /** Merender penanda emphasis sederhana dari content.ts (**bold**, _italic_, _**keduanya**_). */
 export function Rich({ text }: { text: string }) {
@@ -30,32 +30,82 @@ export function Rich({ text }: { text: string }) {
   );
 }
 
-/** Tombol CTA bermerek Shopee: warna oranye Shopee + ikon tas belanja. Membuka Shopee di tab baru. */
+const BRAND: Record<Marketplace, { button: string; Icon: (p: { className?: string }) => ReactNode }> = {
+  shopee: {
+    button:
+      "from-shopee to-shopee-dark shadow-[0_10px_30px_-8px_rgb(238_77_45/0.65)] focus-visible:outline-shopee",
+    Icon: ShopeeBagIcon,
+  },
+  tokopedia: {
+    button:
+      "from-tokopedia to-tokopedia-dark shadow-[0_10px_30px_-8px_rgb(0_170_91/0.6)] focus-visible:outline-tokopedia",
+    Icon: TokopediaBagIcon,
+  },
+};
+
+/** Tombol CTA bermerek marketplace (warna + ikon). Membuka marketplace di tab baru. */
 export function CtaButton({
+  marketplace,
   label = cta.main,
   size = "lg",
   className = "",
   placement,
 }: {
+  marketplace: Marketplace;
+  /** `{mp}` diganti nama marketplace. */
   label?: string;
   size?: "sm" | "lg";
   className?: string;
   /** Posisi tombol di halaman, dicatat oleh A/B tracker (atribut data-cta). */
   placement: string;
 }) {
-  const sizes = size === "sm" ? "gap-1.5 px-4 py-2.5 text-sm" : "gap-2.5 px-7 py-4 text-lg sm:text-xl";
+  const mp = MARKETPLACES[marketplace];
+  const { button, Icon } = BRAND[marketplace];
+  const sizes = size === "sm" ? "gap-1.5 px-4 py-2.5 text-sm" : "gap-2.5 px-6 py-4 text-lg sm:text-xl";
   return (
     <a
-      href={ORDER_URL}
+      href={mp.url}
       data-cta={placement}
+      data-mp={marketplace}
       target="_blank"
       rel="noopener noreferrer"
-      className={`cta-shine group inline-flex items-center justify-center rounded-full bg-gradient-to-b from-shopee to-shopee-dark text-center font-display font-semibold tracking-wide text-white shadow-[0_10px_30px_-8px_rgb(238_77_45/0.65)] ring-1 ring-white/25 transition hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-shopee active:translate-y-0 ${sizes} ${className}`}
+      className={`cta-shine group inline-flex items-center justify-center rounded-full bg-gradient-to-b text-center font-display font-semibold tracking-wide whitespace-nowrap text-white ring-1 ring-white/25 transition hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-4 active:translate-y-0 ${button} ${sizes} ${className}`}
     >
-      <ShopeeBagIcon className={size === "sm" ? "size-5" : "size-6"} />
-      {label}
-      <ArrowIcon className={size === "sm" ? "size-4" : "size-5"} />
+      <Icon className={`shrink-0 ${size === "sm" ? "size-5" : "size-6"}`} />
+      {label.replace("{mp}", mp.name)}
+      <ArrowIcon className={`shrink-0 ${size === "sm" ? "size-4" : "size-5"}`} />
     </a>
+  );
+}
+
+/** Pasangan tombol: Shopee lalu Tokopedia. */
+export function CtaPair({
+  placement,
+  size = "lg",
+  label,
+  align = "start",
+  stretch = true,
+  className = "",
+  itemClassName,
+}: {
+  placement: string;
+  size?: "sm" | "lg";
+  label?: string;
+  align?: "start" | "center";
+  /** true: tombol selebar layar di mobile, berdampingan mulai sm. */
+  stretch?: boolean;
+  className?: string;
+  itemClassName?: string;
+}) {
+  const layout = stretch ? "flex-col sm:flex-row" : "flex-row";
+  const justify = align === "center" ? "justify-center" : "justify-center lg:justify-start";
+  const item = itemClassName ?? (stretch ? "w-full sm:w-auto" : "");
+  return (
+    <div className={`flex flex-wrap gap-3 ${layout} ${justify} ${className}`}>
+      {(Object.keys(MARKETPLACES) as Marketplace[]).map((m) => (
+        <CtaButton key={m} marketplace={m} placement={placement} size={size} label={label} className={item} />
+      ))}
+    </div>
   );
 }
 
@@ -67,9 +117,27 @@ export function PriceTag({ tone = "dark", center = false }: { tone?: "dark" | "l
       <span className={`font-display text-4xl font-bold tracking-tight sm:text-5xl ${amount}`}>{price}</span>
       <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${note}`}>
         <ShopeeBagIcon className="size-4 text-shopee" />
-        Harga di Shopee
+        <TokopediaBagIcon className="size-4 text-tokopedia" />
+        {priceNote}
       </span>
     </p>
+  );
+}
+
+/**
+ * Ikon tas belanja bergaya Tokopedia (digambar sederhana, bukan file logo resmi):
+ * tas dengan dua "mata" seperti maskot burung hantu. Tas mengikuti `currentColor`.
+ */
+export function TokopediaBagIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path d="M8.5 7.5V6.6a3.5 3.5 0 0 1 7 0v.9" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path fill="currentColor" d="M4.6 7.5h14.8l-1.05 13a1.9 1.9 0 0 1-1.9 1.75H7.55a1.9 1.9 0 0 1-1.9-1.75L4.6 7.5Z" />
+      <circle cx="9.4" cy="14.2" r="2.6" fill="#00AA5B" />
+      <circle cx="14.6" cy="14.2" r="2.6" fill="#00AA5B" />
+      <circle cx="9.9" cy="14.2" r="1.1" fill="#fff" />
+      <circle cx="15.1" cy="14.2" r="1.1" fill="#fff" />
+    </svg>
   );
 }
 

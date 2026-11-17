@@ -24,6 +24,7 @@ import {
   offer,
   outcomes,
   price,
+  priceNote,
   readers,
   reality,
   reviews,
@@ -36,7 +37,7 @@ import {
 import {
   CheckIcon,
   Container,
-  CtaButton,
+  CtaPair,
   PriceTag,
   Rich,
   StarIcon,
@@ -139,7 +140,7 @@ function SiteHeader() {
           <Image src={logo} alt="Human Plus Institute" className="h-9 w-auto sm:h-10" preload />
         </a>
         <div className="hidden sm:block">
-          <CtaButton size="sm" label={cta.short} placement="header" />
+          <CtaPair size="sm" label={cta.short} placement="header" stretch={false} />
         </div>
       </Container>
     </header>
@@ -171,7 +172,7 @@ function Hero({ variant }: { variant: HeadlineVariant }) {
 
           <div className="mt-8 flex flex-col items-center gap-5 lg:items-start">
             <PriceTag tone="dark" />
-            <CtaButton label={cta.hero} className="w-full sm:w-auto" placement="hero" />
+            <CtaPair placement="hero" className="w-full" />
           </div>
         </div>
 
@@ -306,9 +307,7 @@ function Audience() {
           <p className="font-display text-2xl font-bold tracking-wide uppercase sm:text-4xl">
             <span className="gold-text">{audience.verdict}</span>
           </p>
-          <div className="mt-6 flex justify-center">
-            <CtaButton placement="audience" />
-          </div>
+          <CtaPair placement="audience" align="center" className="mt-6" />
         </div>
       </Container>
     </section>
@@ -413,7 +412,7 @@ function Chapters() {
             </blockquote>
             <figcaption className="mt-5 font-semibold text-gold-600">{authorQuote.cite}</figcaption>
             <div className="mt-8">
-              <CtaButton label={cta.short} placement="chapters" />
+              <CtaPair placement="chapters" />
             </div>
           </figure>
         </div>
@@ -478,9 +477,7 @@ function Outcomes() {
           ))}
         </ol>
 
-        <div className="mt-12 flex justify-center">
-          <CtaButton placement="outcomes" />
-        </div>
+        <CtaPair placement="outcomes" align="center" className="mt-12" />
       </Container>
     </section>
   );
@@ -658,7 +655,7 @@ function Offer() {
                 ))}
               </ul>
 
-              <CtaButton label={cta.main} className="mt-8 w-full text-base sm:text-lg" placement="offer" />
+              <CtaPair placement="offer" className="mt-8" itemClassName="w-full sm:w-auto sm:shrink-0 sm:grow" />
             </div>
           </div>
         </div>
@@ -718,7 +715,7 @@ function Closing() {
         <div className="mt-8">
           <PriceTag tone="dark" center />
         </div>
-        <CtaButton label={cta.final} className="mt-8 w-full sm:w-auto" placement="closing" />
+        <CtaPair placement="closing" align="center" className="mt-8" />
       </Container>
     </section>
   );
@@ -728,7 +725,7 @@ function Closing() {
 
 function SiteFooter() {
   return (
-    <footer className="border-t border-navy-900/10 bg-white pt-12 pb-28 sm:pb-12">
+    <footer className="border-t border-navy-900/10 bg-white pt-12 pb-36 sm:pb-12">
       <Container className="flex flex-col items-center gap-4 text-center text-sm text-muted">
         <Image src={logo} alt="Human Plus Institute" className="h-10 w-auto" />
         <p className="leading-relaxed">
@@ -759,13 +756,11 @@ function SiteFooter() {
 function MobileCtaBar() {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-navy-950/95 px-4 py-3 backdrop-blur sm:hidden">
-      <div className="flex items-center justify-between gap-3">
-        <div className="leading-tight">
-          <p className="text-xs text-white/60">Harga di Shopee</p>
-          <p className="gold-text font-display text-2xl font-bold">{price}</p>
-        </div>
-        <CtaButton size="sm" label={cta.short} placement="mobile-bar" />
-      </div>
+      <p className="mb-2 flex items-baseline justify-center gap-2 leading-none">
+        <span className="gold-text font-display text-xl font-bold">{price}</span>
+        <span className="text-xs text-white/60">{priceNote}</span>
+      </p>
+      <CtaPair size="sm" label={cta.short} placement="mobile-bar" stretch={false} itemClassName="flex-1" className="flex-nowrap" />
     </div>
   );
 }
@@ -777,7 +772,7 @@ function WhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat via WhatsApp"
-      className="fixed right-4 bottom-24 z-40 grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg ring-4 ring-white transition hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366] sm:right-6 sm:bottom-6"
+      className="fixed right-4 bottom-32 z-40 grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg ring-4 ring-white transition hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366] sm:right-6 sm:bottom-6"
     >
       <WhatsAppIcon className="size-7" />
     </a>

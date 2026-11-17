@@ -16,6 +16,8 @@
   --color-promo: #d92d2d;
   --color-shopee: #ee4d2d;
   --color-shopee-dark: #d73211;
+  --color-tokopedia: #00aa5b;
+  --color-tokopedia-dark: #008f4c;
 
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-oswald), "Arial Narrow", ui-sans-serif, sans-serif;

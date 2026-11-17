@@ -3,6 +3,7 @@ import { ensureSchema, getPool, isDbConfigured } from "@/lib/db";
 import {
   AB_EVENTS,
   AB_EXPERIMENT,
+  AB_MARKETPLACES,
   AB_PLACEMENTS,
   AB_VISITOR_COOKIE,
   isAbVariant,
@@ -12,7 +13,7 @@ import {
 /**
  * Menerima event A/B dari browser (navigator.sendBeacon / fetch keepalive)
  * dan menyimpannya ke tabel MySQL `ab_events`.
- * Yang disimpan: eksperimen, varian, nama event, posisi CTA, ID pengunjung anonim,
+ * Yang disimpan: eksperimen, varian, nama event, posisi CTA, marketplace, ID pengunjung anonim,
  * penanda pratinjau (forced), dan jenis perangkat. TIDAK menyimpan IP atau user-agent.
  */
 const MAX_BODY = 1024;
@@ -55,9 +56,9 @@ export async function POST(request: NextRequest) {
   try {
     await ensureSchema();
     await getPool().execute(
-      `INSERT INTO ab_events (experiment, variant, event, placement, visitor_id, forced, device)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [e.experiment, e.variant, e.event, e.placement, visitorId, e.forced ? 1 : 0, device]
+      `INSERT INTO ab_events (experiment, variant, event, placement, marketplace, visitor_id, forced, device)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [e.experiment, e.variant, e.event, e.placement, e.marketplace, visitorId, e.forced ? 1 : 0, device]
     );
   } catch (err) {
     console.error("[A/B] Gagal menyimpan event:", (err as Error).message);
@@ -91,9 +92,12 @@ function parseEvent(b: unknown) {
   const event = o.event as AbEventName;
 
   let placement: string | null = null;
+  let marketplace: string | null = null;
   if (event === "ab_cta_click") {
     if (typeof o.placement !== "string" || !(AB_PLACEMENTS as readonly string[]).includes(o.placement)) return null;
+    if (typeof o.marketplace !== "string" || !(AB_MARKETPLACES as readonly string[]).includes(o.marketplace)) return null;
     placement = o.placement;
+    marketplace = o.marketplace;
   }
-  return { experiment: AB_EXPERIMENT, variant: o.variant, event, placement, forced: o.forced === true };
+  return { experiment: AB_EXPERIMENT, variant: o.variant, event, placement, marketplace, forced: o.forced === true };
 }

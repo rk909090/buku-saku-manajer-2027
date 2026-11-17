@@ -32,31 +32,45 @@ export function getPool(): Pool {
   return globalForDb.__bsmPool;
 }
 
-/** Membuat tabel bila belum ada. Dijalankan sekali per proses. */
+/** Membuat tabel bila belum ada + migrasi kolom baru. Dijalankan sekali per proses. */
 export function ensureSchema(): Promise<void> {
   if (!globalForDb.__bsmSchema) {
-    globalForDb.__bsmSchema = getPool()
-      .query(
-        `CREATE TABLE IF NOT EXISTS ab_events (
-          id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-          created_at  DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-          experiment  VARCHAR(64)     NOT NULL,
-          variant     VARCHAR(8)      NOT NULL,
-          event       VARCHAR(32)     NOT NULL,
-          placement   VARCHAR(32)     NULL,
-          visitor_id  CHAR(36)        NULL,
-          forced      TINYINT(1)      NOT NULL DEFAULT 0,
-          device      VARCHAR(16)     NULL,
-          PRIMARY KEY (id),
-          KEY idx_exp_var_evt (experiment, variant, event),
-          KEY idx_created (created_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
-      )
-      .then(() => undefined)
-      .catch((err) => {
-        globalForDb.__bsmSchema = undefined; // coba lagi di request berikutnya
-        throw err;
-      });
+    globalForDb.__bsmSchema = migrate().catch((err) => {
+      globalForDb.__bsmSchema = undefined; // coba lagi di request berikutnya
+      throw err;
+    });
   }
   return globalForDb.__bsmSchema;
+}
+
+async function migrate(): Promise<void> {
+  const pool = getPool();
+  await pool.query(
+    `CREATE TABLE IF NOT EXISTS ab_events (
+      id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      created_at  DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      experiment  VARCHAR(64)     NOT NULL,
+      variant     VARCHAR(8)      NOT NULL,
+      event       VARCHAR(32)     NOT NULL,
+      placement   VARCHAR(32)     NULL,
+      marketplace VARCHAR(16)     NULL,
+      visitor_id  CHAR(36)        NULL,
+      forced      TINYINT(1)      NOT NULL DEFAULT 0,
+      device      VARCHAR(16)     NULL,
+      PRIMARY KEY (id),
+      KEY idx_exp_var_evt (experiment, variant, event),
+      KEY idx_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+  );
+
+  // Migrasi 17 Nov 2026: kolom `marketplace` (shopee/tokopedia) untuk tabel yang dibuat sebelumnya.
+  // Klik yang tercatat sebelum kolom ini ada semuanya ke Shopee (satu-satunya CTA saat itu).
+  const [cols] = await pool.query(
+    `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ab_events' AND COLUMN_NAME = 'marketplace'`
+  );
+  if ((cols as unknown[]).length === 0) {
+    await pool.query(`ALTER TABLE ab_events ADD COLUMN marketplace VARCHAR(16) NULL AFTER placement`);
+    await pool.query(`UPDATE ab_events SET marketplace = 'shopee' WHERE event = 'ab_cta_click' AND marketplace IS NULL`);
+  }
 }

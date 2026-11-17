@@ -3,7 +3,7 @@
  * (diambil 17 Nov 2026):
  *   [S1] https://shop.humplus.com/bsm/
  *   [S2] https://humanplusinstitute.myscalev.com/bukusakumanajer
- * Harga & tautan beli: Shopee (lihat ORDER_URL).
+ * Harga & tautan beli: Shopee + Tokopedia (lihat MARKETPLACES).
  * Penanda emphasis mengikuti markup sumber:
  *   **teks**   = <strong>
  *   _teks_     = <em>
@@ -11,23 +11,34 @@
  */
 
 /**
- * Semua tombol CTA mengarah ke halaman produk Shopee (permintaan pemilik, 17 Nov 2026).
- * Harga di Shopee: Rp120.000 (tanpa promo).
+ * Tempat membeli (permintaan pemilik, 17 Nov 2026). Setiap posisi CTA menampilkan
+ * tombol Shopee lalu Tokopedia. Harga keduanya Rp120.000 tanpa promo.
+ * CATATAN 17 Nov 2026: harga di Tokopedia masih tertulis Rp105.000 (salah) dan
+ * akan diubah pemilik ke Rp120.000.
+ * Kunci objek harus sama dengan AB_MARKETPLACES di src/lib/ab-config.ts.
  */
-export const ORDER_URL =
-  "https://shopee.co.id/Buku-Saku-Manajer-Edisi-Kedua-Buku-Manajemen-SDM-Cara-Menjadi-Manajer-Yang-Hebat-i.398813280.17992548335";
+export const MARKETPLACES = {
+  shopee: {
+    name: "Shopee",
+    url: "https://shopee.co.id/Buku-Saku-Manajer-Edisi-Kedua-Buku-Manajemen-SDM-Cara-Menjadi-Manajer-Yang-Hebat-i.398813280.17992548335",
+  },
+  tokopedia: {
+    name: "Tokopedia",
+    url: "https://www.tokopedia.com/humplusstore/buku-saku-manajer-edisi-kedua-terbaru",
+  },
+} as const;
+export type Marketplace = keyof typeof MARKETPLACES;
 
 /** Tautan WhatsApp dari tombol chat mengambang di [S1]. */
 export const WHATSAPP_URL = "https://wa.me/6287840848566";
 
 export const price = "Rp120.000";
+export const priceNote = "Harga di Shopee & Tokopedia";
 
-/** Label tombol CTA (bermerek Shopee). */
+/** Label tombol CTA; `{mp}` diganti nama marketplace. */
 export const cta = {
-  hero: "Beli di Shopee — Rp120.000",
-  main: "Beli Sekarang di Shopee",
-  short: "Beli di Shopee",
-  final: "Dapatkan Buku Saku Manajer di Shopee",
+  main: "Beli di {mp}",
+  short: "{mp}",
 };
 
 /* ───────────── HERO ───────────── */
@@ -413,7 +424,7 @@ export const offer = {
 
 /* ───────────── FAQ [S2] ─────────────
  * - FAQ harga promo DISKON20 dihapus (pembelian kini lewat Shopee, tanpa promo).
- * - "Bagaimana cara membeli buku?" diadaptasi dari [S2] untuk Shopee.
+ * - "Bagaimana cara membeli buku?" diadaptasi dari [S2] untuk Shopee & Tokopedia.
  * - "Bagaimana proses pengiriman?" di sumber masih placeholder "[ISI ADMIN]",
  *   jadi sengaja TIDAK ditampilkan.
  */
@@ -445,7 +456,7 @@ export const faqs = [
   },
   {
     q: "Bagaimana cara membeli buku?",
-    a: "Klik tombol **Beli di Shopee**, lalu selesaikan pemesanan dan pembayaran di Shopee.",
+    a: "Klik tombol **Beli di Shopee** atau **Beli di Tokopedia**, lalu selesaikan pemesanan dan pembayaran di marketplace pilihan Anda.",
   },
 ];
 

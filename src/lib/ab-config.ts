@@ -37,6 +37,9 @@ export const AB_PLACEMENTS = [
   "mobile-bar",
 ] as const;
 
+/** Marketplace tujuan tombol CTA (nilai atribut data-mp). Sama dengan kunci MARKETPLACES di content.ts. */
+export const AB_MARKETPLACES = ["shopee", "tokopedia"] as const;
+
 /** Parameter URL untuk memaksa varian saat QA, mis. /?hl=b (tidak mengubah cookie). */
 export const AB_QUERY_PARAM = "hl";
 
