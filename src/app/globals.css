@@ -119,3 +119,10 @@ body {
     animation: none;
   }
 }
+
+/* Saat ada hitung mundur promo, bilah CTA mobile lebih tinggi: naikkan tombol WhatsApp. */
+@media (max-width: 639px) {
+  html[data-promo] .wa-float {
+    bottom: 10.5rem;
+  }
+}

@@ -61,7 +61,7 @@ export async function activeDiscounts(db: Db = getPool(), now = new Date()): Pro
   await ensureSchema();
   const [rows] = await db.query<RowDataPacket[]>(
     `SELECT id, name, product_id, type, value, starts_at, ends_at, active FROM discounts
-      WHERE active = 1 AND (starts_at IS NULL OR starts_at <= ?) AND (ends_at IS NULL OR ends_at > ?)`,
+      WHERE active = 1 AND (starts_at IS NULL OR starts_at <= ?) AND (ends_at IS NULL OR ends_at > ?) ORDER BY id`,
     [now, now]
   );
   return rows as Discount[];

@@ -19,7 +19,11 @@ const id = {
   faq: `${SITE_URL}/#faq`,
 };
 
-export function buildStructuredData() {
+/**
+ * `offer` (opsional): harga yang sedang tampil di halaman (mis. harga promo) — structured data harus sama
+ * dengan harga yang terlihat. Tanpa itu dipakai harga dari content.ts.
+ */
+export function buildStructuredData(offer?: { price: number; validUntil: Date | null }) {
   const cover = `${SITE_URL}/images/bsm-cover.png`;
   const mockup = `${SITE_URL}/images/bsm-mockup.webp`;
 
@@ -103,8 +107,9 @@ export function buildStructuredData() {
         offers: {
           "@type": "Offer",
           url: `${SITE_URL}/`,
-          price: price.replace(/\D/g, ""),
+          price: offer ? String(offer.price) : price.replace(/\D/g, ""),
           priceCurrency: "IDR",
+          ...(offer?.validUntil ? { priceValidUntil: offer.validUntil.toISOString().slice(0, 10) } : {}),
           seller: { "@id": id.org },
         },
       },

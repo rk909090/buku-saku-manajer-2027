@@ -22,8 +22,6 @@ import {
   institute,
   offer,
   outcomes,
-  price,
-  priceNote,
   readers,
   reality,
   reviews,
@@ -37,7 +35,6 @@ import {
   CheckIcon,
   Container,
   CtaPair,
-  PriceTag,
   Rich,
   StarIcon,
   UserIcon,
@@ -51,6 +48,9 @@ import { buildStructuredData } from "@/lib/structured-data";
 import { GoogleTag } from "@/components/google-tag";
 import { CartLink } from "@/components/shop/cart-link";
 import { BOOK_FACTS } from "@/lib/seo";
+import { getLandingPromo } from "@/lib/shop/landing-promo";
+import { currentDeal, type LandingPromo } from "@/lib/promo-deal";
+import { MobilePromoPrice, MobilePromoStrip, PromoCountdown, PromoPriceText, PromoPriceTag } from "@/components/promo/promo-ui";
 
 function abInitScript(variantId: string) {
   const exp = JSON.stringify(AB_EXPERIMENT);
@@ -65,9 +65,13 @@ function abInitScript(variantId: string) {
 }
 
 /** Seluruh landing page. Hanya headline hero yang berbeda per varian A/B. */
-export function LandingPage({ variant }: { variant: HeadlineVariant }) {
+export async function LandingPage({ variant }: { variant: HeadlineVariant }) {
+  // Diskon produk (cache ±1 menit + invalidasi saat admin mengubah diskon) — ikut di HTML statis.
+  const promo = await getLandingPromo();
   // "<" di-escape agar teks JSON tidak bisa menutup tag <script>.
-  const jsonLd = JSON.stringify(buildStructuredData()).replace(/</g, "\\u003c");
+  const deal = currentDeal(promo, null); // diskon yang berlaku saat data diambil server
+  const offer = promo ? { price: deal ? deal.price : promo.basePrice, validUntil: deal?.endsAt ? new Date(deal.endsAt) : null } : undefined;
+  const jsonLd = JSON.stringify(buildStructuredData(offer)).replace(/</g, "\\u003c");
 
   return (
     <>
@@ -78,7 +82,7 @@ export function LandingPage({ variant }: { variant: HeadlineVariant }) {
       <script dangerouslySetInnerHTML={{ __html: abInitScript(variant.id) }} />
       <SiteHeader />
       <main>
-        <Hero variant={variant} />
+        <Hero variant={variant} promo={promo} />
         <Reality />
         <Story />
         <Audience />
@@ -89,12 +93,12 @@ export function LandingPage({ variant }: { variant: HeadlineVariant }) {
         <Author />
         <Institute />
         <Reviews />
-        <Offer />
+        <Offer promo={promo} />
         <Faq />
-        <Closing />
+        <Closing promo={promo} />
       </main>
       <SiteFooter />
-      <MobileCtaBar />
+      <MobileCtaBar promo={promo} />
       <WhatsAppButton />
       <AbTracker variant={variant.id} />
     </>
@@ -163,7 +167,7 @@ function SiteHeader() {
 
 /* ───────────────────────── Hero ───────────────────────── */
 
-function Hero({ variant }: { variant: HeadlineVariant }) {
+function Hero({ variant, promo }: { variant: HeadlineVariant; promo: LandingPromo | null }) {
   return (
     <section className="hero-bg relative overflow-hidden text-white">
       <Container className="grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10 lg:py-24">
@@ -185,7 +189,8 @@ function Hero({ variant }: { variant: HeadlineVariant }) {
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-white/80 lg:mx-0">{hero.lead}</p>
 
           <div className="mt-8 flex flex-col items-center gap-5 lg:items-start">
-            <PriceTag tone="dark" />
+            <PromoPriceTag promo={promo} />
+            <PromoCountdown promo={promo} />
             <CtaPair placement="hero" className="w-full" />
           </div>
         </div>
@@ -639,7 +644,7 @@ function Reviews() {
 
 /* ───────────────────────── Penawaran [S2] ───────────────────────── */
 
-function Offer() {
+function Offer({ promo }: { promo: LandingPromo | null }) {
   return (
     <section id="beli" className="scroll-mt-20 py-16 sm:py-24">
       <Container>
@@ -656,8 +661,9 @@ function Offer() {
               <h2 className="font-display text-3xl leading-tight font-bold sm:text-4xl">{offer.title}</h2>
               <p className="mt-2 text-white/65">{offer.byline}</p>
 
-              <div className="mt-6">
-                <PriceTag tone="dark" />
+              <div className="mt-6 flex flex-col items-start gap-5">
+                <PromoPriceTag promo={promo} align="left" />
+                <PromoCountdown promo={promo} />
               </div>
 
               {/* Fakta ringkas buku (sama dengan src/lib/seo.ts BOOK_FACTS & JSON-LD) */}
@@ -667,7 +673,7 @@ function Offer() {
                   {BOOK_FACTS.map((f) => (
                     <div key={f.label} className="contents">
                       <dt className="text-white/55">{f.label}</dt>
-                      <dd className="font-medium text-white/90">{f.value}</dd>
+                      <dd className="font-medium text-white/90">{f.label === "Harga" ? <PromoPriceText promo={promo} fallback={f.value} /> : f.value}</dd>
                     </div>
                   ))}
                 </dl>
@@ -718,7 +724,7 @@ function Faq() {
 
 /* ───────────────────────── Penutup [S2] ───────────────────────── */
 
-function Closing() {
+function Closing({ promo }: { promo: LandingPromo | null }) {
   return (
     <section className="hero-bg py-16 text-center text-white sm:py-24">
       <Container className="max-w-3xl">
@@ -730,8 +736,9 @@ function Closing() {
           className="mx-auto mt-10 h-auto w-48 drop-shadow-[0_20px_30px_rgb(0_0_0/0.5)] sm:w-56"
           sizes="224px"
         />
-        <div className="mt-8">
-          <PriceTag tone="dark" center />
+        <div className="mt-8 flex flex-col items-center gap-6">
+          <PromoPriceTag promo={promo} align="center" />
+          <PromoCountdown promo={promo} />
         </div>
         <CtaPair placement="closing" align="center" className="mt-8" />
       </Container>
@@ -771,13 +778,11 @@ function SiteFooter() {
 /* ───────────────────────── Floating ───────────────────────── */
 
 /** Bilah CTA lengket di bawah layar, khusus mobile. */
-function MobileCtaBar() {
+function MobileCtaBar({ promo }: { promo: LandingPromo | null }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-navy-950/95 px-4 py-3 backdrop-blur sm:hidden">
-      <p className="mb-2 flex items-baseline justify-center gap-2 leading-none">
-        <span className="gold-text font-display text-xl font-bold">{price}</span>
-        <span className="text-xs text-white/60">{priceNote}</span>
-      </p>
+      <MobilePromoStrip promo={promo} />
+      <MobilePromoPrice promo={promo} />
       <CtaPair size="sm" placement="mobile-bar" stretch={false} itemClassName="flex-1" className="flex-nowrap" />
     </div>
   );
@@ -790,7 +795,7 @@ function WhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat via WhatsApp"
-      className="fixed right-4 bottom-32 z-40 grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg ring-4 ring-white transition hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366] sm:right-6 sm:bottom-6"
+      className="wa-float fixed right-4 bottom-32 z-40 grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg ring-4 ring-white transition hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366] sm:right-6 sm:bottom-6"
     >
       <WhatsAppIcon className="size-7" />
     </a>

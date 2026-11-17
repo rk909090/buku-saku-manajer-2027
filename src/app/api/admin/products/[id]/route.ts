@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { getPool } from "@/lib/db";
 import { json, withAdmin } from "@/lib/shop/http";
+import { refreshLandingPromo } from "@/lib/shop/landing-promo";
 import { listProducts } from "@/lib/shop/orders";
 
 const body = z.object({
@@ -30,6 +31,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/
         WHERE id = ?`,
       [p.name, p.price, p.weight_g, p.length_cm, p.width_cm, p.height_cm, p.stock, p.active ? 1 : 0, id]
     );
+    refreshLandingPromo();
     return json({ products: await listProducts(false) });
   });
 }

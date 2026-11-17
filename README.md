@@ -54,6 +54,7 @@ Lihat [`.env.example`](.env.example). Di Hostinger diisi lewat hPanel → Node.j
 - Tautan promosi: `/checkout?add=buku-saku-manajer&kupon=KODE` memasang kupon otomatis. Kolom kupon di checkout hanya muncul bila ada kupon yang sedang berlaku.
 - Kuota total menghitung pesanan yang belum kedaluwarsa/dibatalkan (dikunci `SELECT … FOR UPDATE` saat pesanan dibuat); kuota per pelanggan menghitung pesanan yang sudah dibayar.
 - **Minimal total pembayaran** (Pengaturan, default Rp10.000): potongan dikurangi bila total akan turun di bawahnya. Batas bawah per metode menurut Xendit: BCA VA & Alfamart/Indomaret Rp10.000, kartu Rp5.000, DANA/OVO Rp100, QRIS/ShopeePay/GoPay Rp1.
+- **Landing page saat diskon aktif**: harga coret + label “Hemat X%”, kartu hitung mundur di hero/penawaran/penutup, dan strip hitung mundur di bilah CTA mobile (`src/components/promo/promo-ui.tsx`). Data diambil `getLandingPromo()` (`use cache`, profil `minutes`, tag `landing-promo` yang di-invalidasi saat admin mengubah diskon/produk) sehingga ikut di HTML statis; detik dihitung di browser dari `ends_at` di DB. Diskon tanpa tanggal berakhir tampil tanpa hitung mundur. Saat waktu habis, harga kembali normal tanpa reload. JSON-LD `offers.price` mengikuti harga yang tampil (+`priceValidUntil`).
 - Xendit tidak punya tipe item diskon, jadi potongan dimasukkan ke harga item; jumlah item selalu = total tagihan (`src/lib/shop/pricing.ts`).
 
 ## Dashboard admin (`/admin`)

@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import type { ResultSetHeader } from "mysql2/promise";
 import { getPool } from "@/lib/db";
 import { json, withAdmin } from "@/lib/shop/http";
+import { refreshLandingPromo } from "@/lib/shop/landing-promo";
 import { listPromos } from "@/lib/shop/promo";
 import { discountBody, firstIssue } from "@/lib/shop/promo-schemas";
 
@@ -17,6 +18,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/
       [d.name, d.product_id, d.type, d.value, d.starts_at ? new Date(d.starts_at) : null, d.ends_at ? new Date(d.ends_at) : null, d.active ? 1 : 0, id]
     );
     if (!r.affectedRows) return json({ error: "Diskon tidak ditemukan" }, 404);
+    refreshLandingPromo();
     return json(await listPromos());
   });
 }
@@ -27,6 +29,7 @@ export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/admin
     const id = Number((await ctx.params).id);
     if (!Number.isInteger(id) || id < 1) return json({ error: "not_found" }, 404);
     await getPool().query("DELETE FROM discounts WHERE id = ?", [id]);
+    refreshLandingPromo();
     return json(await listPromos());
   });
 }
