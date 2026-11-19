@@ -6,6 +6,7 @@ import { json, withAdmin } from "@/lib/shop/http";
 import { addEvent, confirmPaymentFromXendit } from "@/lib/shop/orders";
 import { ORDER_STATUS } from "@/lib/format";
 import { queueCustomerEmail } from "@/lib/email/notify";
+import { deleteOrder } from "@/lib/shop/cleanup";
 
 /** Transisi status yang boleh dilakukan admin. "paid" hanya dari Xendit (webhook / cek ulang). */
 const TRANSITIONS: Record<string, string[]> = {
@@ -113,5 +114,17 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/admin/
       queueCustomerEmail(id, b.status);
     }
     return json(await load(id));
+  });
+}
+
+/** Hapus permanen pesanan uji (hanya kedaluwarsa/dibatalkan). */
+export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/admin/orders/[id]">) {
+  return withAdmin(request, async (admin) => {
+    const id = Number((await ctx.params).id);
+    if (!Number.isInteger(id) || id < 1) return json({ error: "not_found" }, 404);
+    const r = await deleteOrder(id);
+    if (!r.ok) return json({ error: r.error }, r.status);
+    console.log(`[admin] pesanan ${r.orderNumber} dihapus oleh ${admin.email}`);
+    return json({ ok: true });
   });
 }

@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { getPool } from "@/lib/db";
 import { json, withAdmin } from "@/lib/shop/http";
+import { deleteCustomer } from "@/lib/shop/cleanup";
 
 export async function GET(request: NextRequest, ctx: RouteContext<"/api/admin/customers/[id]">) {
   return withAdmin(request, async () => {
@@ -16,5 +17,17 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/admin/cu
       [id]
     );
     return json({ customer: c[0], orders });
+  });
+}
+
+/** Hapus permanen pelanggan uji beserta pesanannya (hanya bila semua pesanan kedaluwarsa/dibatalkan). */
+export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/admin/customers/[id]">) {
+  return withAdmin(request, async (admin) => {
+    const id = Number((await ctx.params).id);
+    if (!Number.isInteger(id) || id < 1) return json({ error: "not_found" }, 404);
+    const r = await deleteCustomer(id);
+    if (!r.ok) return json({ error: r.error }, r.status);
+    console.log(`[admin] pelanggan #${id} (${r.orders} pesanan) dihapus oleh ${admin.email}`);
+    return json({ ok: true, orders: r.orders });
   });
 }

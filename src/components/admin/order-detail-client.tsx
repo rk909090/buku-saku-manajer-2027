@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { ArrowLeft, Check, Copy, MessageCircle, RefreshCw } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Check, Copy, MessageCircle, RefreshCw, Trash2 } from "lucide-react";
 import { adminFetch } from "@/components/admin/api";
 import { Alert, Button, Card, inputCls, Loading, StatusBadge } from "@/components/admin/ui";
 import { formatDateTime, formatRupiah, ORDER_STATUS } from "@/lib/format";
@@ -24,6 +24,7 @@ const ACTION_LABEL: Record<string, string> = {
 
 export function OrderDetailClient() {
   const id = useSearchParams().get("id") || "";
+  const router = useRouter();
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
@@ -74,6 +75,27 @@ export function OrderDetailClient() {
         <h1 className="font-mono text-2xl font-bold text-slate-900">{o.order_number}</h1>
         <StatusBadge status={String(o.status)} />
         <span className="text-sm text-slate-500">Dibuat {formatDateTime(String(o.created_at))}</span>
+        {["expired", "cancelled"].includes(String(o.status)) && (
+          <Button
+            variant="danger"
+            className="ml-auto"
+            loading={busy === "delete"}
+            onClick={async () => {
+              if (!window.confirm(`Hapus permanen pesanan ${o.order_number}? Data pesanan, item, dan riwayatnya akan hilang dan tidak bisa dikembalikan.`)) return;
+              setBusy("delete");
+              setErr("");
+              try {
+                await adminFetch(`/api/admin/orders/${o.id}`, { method: "DELETE" });
+                router.push("/admin/orders");
+              } catch (e) {
+                setErr((e as Error).message);
+                setBusy("");
+              }
+            }}
+          >
+            <Trash2 className="size-4" /> Hapus pesanan
+          </Button>
+        )}
       </div>
       {err && <div className="mb-4"><Alert>{err}</Alert></div>}
       {msg && <div className="mb-4"><Alert tone="green">{msg}</Alert></div>}

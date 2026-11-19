@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, MessageCircle, Search } from "lucide-react";
+import { ArrowLeft, MessageCircle, Search, Trash2 } from "lucide-react";
 import { adminFetch } from "@/components/admin/api";
-import { Alert, Card, Empty, inputCls, Loading, PageHeader, Pagination, Stat, StatusBadge } from "@/components/admin/ui";
+import { Alert, Button, Card, Empty, inputCls, Loading, PageHeader, Pagination, Stat, StatusBadge } from "@/components/admin/ui";
 import { formatDateTime, formatRupiah } from "@/lib/format";
 
 type Row = { id: number; name: string; email: string; phone: string; created_at: string; orders: number; paid_orders: number; total_spent: number; last_order_at: string | null };
@@ -92,13 +92,17 @@ type CustomerDetail = {
 
 export function CustomerDetailClient() {
   const id = useSearchParams().get("id") || "";
+  const router = useRouter();
   const [d, setD] = useState<CustomerDetail | null>(null);
   const [err, setErr] = useState("");
+  const [deleting, setDeleting] = useState(false);
   useEffect(() => {
     adminFetch<CustomerDetail>(`/api/admin/customers/${encodeURIComponent(id)}`).then(setD).catch((e) => setErr((e as Error).message));
   }, [id]);
-  if (err) return <Alert>{err}</Alert>;
+  if (err && !d) return <Alert>{err}</Alert>;
   if (!d) return <Loading />;
+  // Data uji: boleh dihapus hanya bila semua pesanannya kedaluwarsa/dibatalkan (tidak ada yang pernah dibayar).
+  const deletable = d.orders.every((o) => ["expired", "cancelled"].includes(o.status));
   const paid = d.orders.filter((o) => ["paid", "processing", "shipped", "completed"].includes(o.status));
   const wa = d.customer.phone.replace(/^\+/, "");
   return (
@@ -114,7 +118,28 @@ export function CustomerDetailClient() {
         <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500">
           <MessageCircle className="size-4" /> Chat WhatsApp
         </a>
+        {deletable && (
+          <Button
+            variant="danger"
+            loading={deleting}
+            onClick={async () => {
+              if (!window.confirm(`Hapus permanen pelanggan ${d.customer.email} beserta ${d.orders.length} pesanannya? Tidak bisa dikembalikan.`)) return;
+              setDeleting(true);
+              setErr("");
+              try {
+                await adminFetch(`/api/admin/customers/${d.customer.id}`, { method: "DELETE" });
+                router.push("/admin/customers");
+              } catch (e) {
+                setErr((e as Error).message);
+                setDeleting(false);
+              }
+            }}
+          >
+            <Trash2 className="size-4" /> Hapus pelanggan &amp; pesanan uji
+          </Button>
+        )}
       </div>
+      {err && <div className="mb-4"><Alert>{err}</Alert></div>}
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Stat label="Total belanja" value={formatRupiah(paid.reduce((s, o) => s + o.total, 0))} />
         <Stat label="Pesanan dibayar" value={paid.length} />
