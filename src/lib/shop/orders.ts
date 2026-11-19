@@ -264,7 +264,9 @@ export async function createOrder(input: CreateOrderInput) {
       amount: total,
       description: `Pesanan ${number} — Buku Saku Manajer${quote ? ` · kupon ${quote.coupon.code}` : ""}`,
       customer: {
-        referenceId: `cust${customerId}`,
+        // Xendit membuat objek customer baru per sesi dan reference_id harus unik di seluruh akun (akun ini juga
+        // dipakai sistem lain) — pakai nomor pesanan (unik), bukan ID pelanggan yang berulang untuk pembeli lama.
+        referenceId: `bsm-${number}`,
         email,
         mobileNumber: phone,
         givenNames: given,

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         referenceId: ref,
         amount: 10000,
         description: "UJI metode pembayaran dari dashboard — jangan dibayar",
-        customer: { referenceId: `admin${admin.id}`, email: admin.email, mobileNumber: `+${settings.whatsapp_number}`, givenNames: "Uji Admin" },
+        customer: { referenceId: `bsm-${ref.toLowerCase()}`, email: admin.email, mobileNumber: `+${settings.whatsapp_number}`, givenNames: "Uji Admin" },
         items: [{ referenceId: "uji", type: "FEE", name: "Uji metode pembayaran (jangan dibayar)", category: "Uji", netUnitAmount: 10000, quantity: 1 }],
         successReturnUrl: `${SITE_ORIGIN}/admin/settings`,
         cancelReturnUrl: `${SITE_ORIGIN}/admin/settings`,
