@@ -66,6 +66,8 @@ export type CreateSessionInput = {
   successReturnUrl: string;
   cancelReturnUrl: string;
   expiresAt: Date;
+  /** Batasi metode di halaman bayar Xendit (`allowed_payment_channels`). Kosong/undefined = semua metode aktif. */
+  allowedChannels?: string[];
 };
 
 export function createPaymentSession(i: CreateSessionInput) {
@@ -101,6 +103,7 @@ export function createPaymentSession(i: CreateSessionInput) {
       success_return_url: i.successReturnUrl,
       cancel_return_url: i.cancelReturnUrl,
       expires_at: i.expiresAt.toISOString(),
+      ...(i.allowedChannels?.length ? { allowed_payment_channels: i.allowedChannels } : {}),
     }),
   });
 }

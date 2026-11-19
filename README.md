@@ -64,6 +64,12 @@ Lihat [`.env.example`](.env.example). Di Hostinger diisi lewat hPanel → Node.j
 - **Landing page saat diskon aktif**: harga coret + label “Hemat X%”, kartu hitung mundur di hero/penawaran/penutup, dan strip hitung mundur di bilah CTA mobile (`src/components/promo/promo-ui.tsx`). Data diambil `getLandingPromo()` (`use cache`, profil `minutes`, tag `landing-promo` yang di-invalidasi saat admin mengubah diskon/produk) sehingga ikut di HTML statis; detik dihitung di browser dari `ends_at` di DB. Diskon tanpa tanggal berakhir tampil tanpa hitung mundur. Saat waktu habis, harga kembali normal tanpa reload. JSON-LD `offers.price` mengikuti harga yang tampil (+`priceValidUntil`).
 - Xendit tidak punya tipe item diskon, jadi potongan dimasukkan ke harga item; jumlah item selalu = total tagihan (`src/lib/shop/pricing.ts`).
 
+## Metode pembayaran (Xendit)
+
+- Dashboard → Pengaturan → Metode pembayaran: "Semua metode yang aktif" (default) atau "Hanya Virtual Account" dengan pilihan bank (`src/lib/shop/payment-channels.ts`, kode dari tabel resmi Xendit).
+- Dikirim sebagai `allowed_payment_channels` saat membuat sesi (POST /sessions). Xendit tidak menyediakan API untuk membaca kanal yang aktif, jadi gunakan tombol **Uji ke Xendit** (membuat sesi uji Rp10.000, kedaluwarsa 30 menit, bukan pesanan) sebelum menyimpan.
+- Pengaman: bila Xendit menolak kanal (INVALID_PAYMENT_CHANNEL) saat pesanan nyata, sesi dibuat ulang tanpa pembatasan dan dicatat di riwayat pesanan.
+
 ## Email notifikasi (Resend)
 
 - Dikirim lewat Resend REST API (`src/lib/email/send.ts`) dari `noreply@humplus.com` (bisa diganti dengan env `EMAIL_FROM`). Butuh env `RESEND_API_KEY` dan domain humplus.com terverifikasi di Resend.

@@ -4,7 +4,8 @@ import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/prom
 import { ensureSchema, getPool } from "@/lib/db";
 import { getSettings } from "@/lib/shop/settings";
 import { getRates, type RateOption } from "@/lib/shop/biteship";
-import { createPaymentSession, getPaymentSession, type CreateSessionInput } from "@/lib/shop/xendit";
+import { createPaymentSession, getPaymentSession, XenditError, type CreateSessionInput } from "@/lib/shop/xendit";
+import { parseChannels } from "@/lib/shop/payment-channels";
 import { SITE_ORIGIN } from "@/lib/shop/env";
 import { activeDiscounts, applyMinimumTotal, bestDiscount, evaluateCoupon, type CouponQuote } from "@/lib/shop/promo";
 import { paymentLines } from "@/lib/shop/pricing";
@@ -257,7 +258,8 @@ export async function createOrder(input: CreateOrderInput) {
     const itemsSum = xItems.reduce((s, x) => s + x.netUnitAmount * x.quantity, 0);
     if (itemsSum !== total) throw new Error(`Jumlah item (${itemsSum}) tidak sama dengan total (${total})`);
 
-    const session = await createPaymentSession({
+    const allowed = parseChannels(settings.payment_channels);
+    const sessionInput: CreateSessionInput = {
       referenceId: number,
       amount: total,
       description: `Pesanan ${number} — Buku Saku Manajer${quote ? ` · kupon ${quote.coupon.code}` : ""}`,
@@ -272,7 +274,22 @@ export async function createOrder(input: CreateOrderInput) {
       successReturnUrl: statusUrl,
       cancelReturnUrl: statusUrl,
       expiresAt,
-    });
+      allowedChannels: allowed,
+    };
+    let session;
+    try {
+      session = await createPaymentSession(sessionInput);
+    } catch (err) {
+      // Pengaman: bila kanal yang dipilih admin ternyata tidak aktif di akun Xendit, jangan gagalkan pesanan —
+      // buat ulang tanpa pembatasan dan catat di riwayat pesanan agar admin memperbaiki pengaturan.
+      if (allowed.length && err instanceof XenditError && err.code === "INVALID_PAYMENT_CHANNEL") {
+        await addEvent(pool, orderId, "payment_channels", `Kanal pembayaran ditolak Xendit (${err.message}); semua metode ditampilkan. Periksa Pengaturan → Metode pembayaran.`.slice(0, 500));
+        console.error("[xendit] INVALID_PAYMENT_CHANNEL", err.message);
+        session = await createPaymentSession({ ...sessionInput, allowedChannels: undefined });
+      } else {
+        throw err;
+      }
+    }
     await pool.query(
       "UPDATE orders SET xendit_session_id = ?, payment_link_url = ?, payment_expires_at = ? WHERE id = ?",
       [session.payment_session_id, session.payment_link_url, session.expires_at ? new Date(session.expires_at) : expiresAt, orderId]

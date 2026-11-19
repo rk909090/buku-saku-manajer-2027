@@ -5,6 +5,7 @@ import { listProducts, shippingReady } from "@/lib/shop/orders";
 import { getSettings } from "@/lib/shop/settings";
 import { integrationStatus } from "@/lib/shop/env";
 import { activeDiscounts, bestDiscount, hasRedeemableCoupon } from "@/lib/shop/promo";
+import { channelLabel, parseChannels } from "@/lib/shop/payment-channels";
 
 /** Katalog publik: harga & ketersediaan dari DB (bukan dari kode), plus status kesiapan checkout. */
 export async function GET() {
@@ -37,6 +38,8 @@ export async function GET() {
       maxQty: settings.max_qty_per_item,
       minOrderTotal: settings.min_order_total,
       whatsapp: settings.whatsapp_number,
+      // Nama bank VA yang ditampilkan Xendit (kosong = semua metode yang aktif).
+      paymentBanks: parseChannels(settings.payment_channels).map(channelLabel),
       couponsEnabled,
       checkout: {
         ready: ship.ok && integ.biteship !== "missing" && integ.xendit !== "missing" && integ.xenditWebhook !== "missing",

@@ -22,7 +22,7 @@ type Product = {
   available: boolean;
   stock: number | null;
 };
-type Catalog = { products: Product[]; maxQty: number; minOrderTotal: number; couponsEnabled: boolean; whatsapp: string; checkout: { ready: boolean; reason: string } };
+type Catalog = { products: Product[]; maxQty: number; minOrderTotal: number; couponsEnabled: boolean; whatsapp: string; paymentBanks: string[]; checkout: { ready: boolean; reason: string } };
 type AppliedCoupon = { code: string; label: string; description: string | null; type: string; discount: number; shippingDiscount: number | null; limitedByMinimum: boolean };
 const COUPON_RE = /^[A-Za-z0-9_-]{3,32}$/;
 type Rate = {
@@ -536,7 +536,9 @@ export function CheckoutClient() {
       </button>
       <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-muted">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-gold-700" />
-        Pembayaran diproses di halaman aman Xendit. Metode yang tersedia ditampilkan di halaman pembayaran.
+        {catalog.paymentBanks?.length
+          ? `Pembayaran via transfer Virtual Account (${catalog.paymentBanks.join(", ")}) di halaman aman Xendit.`
+          : "Pembayaran diproses di halaman aman Xendit. Metode yang tersedia ditampilkan di halaman pembayaran."}
       </p>
     </div>
   );

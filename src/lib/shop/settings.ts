@@ -23,6 +23,8 @@ export type ShopSettings = {
   notify_on_pending: number;
   /** Nomor WhatsApp toko (format internasional tanpa +, mis. 6287840848566). */
   whatsapp_number: string;
+  /** Kanal pembayaran Xendit yang ditampilkan (kode dipisah koma). Kosong = semua metode yang aktif di akun. */
+  payment_channels: string;
 };
 
 /** Kurir umum untuk paket buku menurut dokumentasi Biteship; admin bisa mengubahnya. */
@@ -40,6 +42,7 @@ const DEFAULTS: ShopSettings = {
   notify_emails: "",
   notify_on_pending: 0,
   whatsapp_number: DEFAULT_WHATSAPP,
+  payment_channels: "",
 };
 
 export async function getSettings(): Promise<ShopSettings> {

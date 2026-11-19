@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, CircleAlert } from "lucide-react";
 import { adminFetch } from "@/components/admin/api";
 import { formatWhatsapp, normalizeWhatsapp, waLink } from "@/lib/whatsapp";
+import { parseChannels, VA_CHANNELS } from "@/lib/shop/payment-channels";
 import { AreaCombobox, type AreaValue } from "@/components/shop/area-combobox";
 import { Alert, Badge, Button, Card, Field, inputCls, Loading, PageHeader } from "@/components/admin/ui";
 
-type Settings = { origin_area_id: string; origin_area_name: string; origin_postal_code: string; couriers: string; max_qty_per_item: number; min_order_total: number; notify_emails: string; notify_on_pending: number; whatsapp_number: string };
+type Settings = { origin_area_id: string; origin_area_name: string; origin_postal_code: string; couriers: string; max_qty_per_item: number; min_order_total: number; notify_emails: string; notify_on_pending: number; whatsapp_number: string; payment_channels: string };
 type Resp = { settings: Settings; defaultCouriers: string; integrations: { biteship: string; xendit: string; xenditWebhook: string; resend: string } };
 
 /** Kode kurir dari dokumentasi Biteship (couriers overview). */
@@ -124,6 +125,7 @@ export function SettingsClient() {
         </Card>
 
         <div className="space-y-6">
+          <PaymentChannelsCard initial={d.settings.payment_channels} minTotal={d.settings.min_order_total} />
           <WhatsappCard initial={d.settings.whatsapp_number} />
           <NotificationCard
             emails={notifyEmails}
@@ -328,6 +330,107 @@ function WhatsappCard({ initial }: { initial: string }) {
           </a>
         </div>
       </form>
+    </Card>
+  );
+}
+
+function PaymentChannelsCard({ initial, minTotal }: { initial: string; minTotal: number }) {
+  const [saved, setSaved] = useState(parseChannels(initial));
+  const [mode, setMode] = useState<"all" | "va">(saved.length ? "va" : "all");
+  const [picked, setPicked] = useState<string[]>(saved);
+  const [busy, setBusy] = useState<"" | "save" | "test">("");
+  const [msg, setMsg] = useState<{ tone: "green" | "red" | "amber"; text: string } | null>(null);
+  const [testUrl, setTestUrl] = useState("");
+  const chosen = mode === "all" ? [] : picked;
+  const dirty = chosen.join(",") !== saved.join(",");
+  const toggle = (code: string, on: boolean) => {
+    setPicked((p) => (on ? [...p, code] : p.filter((c) => c !== code)));
+    setTestUrl("");
+  };
+
+  async function test() {
+    if (mode === "va" && chosen.length === 0) return setMsg({ tone: "red", text: "Pilih minimal satu bank" });
+    setBusy("test");
+    setMsg(null);
+    setTestUrl("");
+    try {
+      const j = await adminFetch<{ url: string }>("/api/admin/settings/payments/test", { method: "POST", body: JSON.stringify({ payment_channels: chosen }) });
+      setTestUrl(j.url);
+      setMsg({ tone: "green", text: "Xendit menerima pilihan ini. Buka halaman uji untuk melihat metode yang tampil (jangan dibayar; kedaluwarsa 30 menit)." });
+    } catch (e) {
+      setMsg({ tone: "red", text: (e as Error).message });
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function save() {
+    if (mode === "va" && chosen.length === 0) return setMsg({ tone: "red", text: "Pilih minimal satu bank" });
+    setBusy("save");
+    setMsg(null);
+    try {
+      const j = await adminFetch<{ settings: Settings }>("/api/admin/settings/payments", { method: "PUT", body: JSON.stringify({ payment_channels: chosen }) });
+      const next = parseChannels(j.settings.payment_channels);
+      setSaved(next);
+      setMsg({ tone: "green", text: next.length ? `Tersimpan: pembeli hanya melihat Virtual Account (${next.length} bank).` : "Tersimpan: semua metode yang aktif di Xendit ditampilkan." });
+    } catch (e) {
+      setMsg({ tone: "red", text: (e as Error).message });
+    } finally {
+      setBusy("");
+    }
+  }
+
+  return (
+    <Card title="Metode pembayaran (Xendit)">
+      <div className="space-y-4">
+        {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+        <div className="grid gap-2">
+          <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm ${mode === "all" ? "border-slate-900 bg-slate-50" : "border-slate-200"}`}>
+            <input type="radio" name="paymode" className="mt-0.5 size-4 accent-slate-900" checked={mode === "all"} onChange={() => { setMode("all"); setTestUrl(""); }} />
+            <span>
+              <span className="font-medium text-slate-900">Semua metode yang aktif di akun Xendit</span>
+              <span className="block text-xs text-slate-500">QRIS, e-wallet, VA, gerai, kartu — sesuai aktivasi di dashboard Xendit.</span>
+            </span>
+          </label>
+          <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm ${mode === "va" ? "border-slate-900 bg-slate-50" : "border-slate-200"}`}>
+            <input type="radio" name="paymode" className="mt-0.5 size-4 accent-slate-900" checked={mode === "va"} onChange={() => { setMode("va"); setTestUrl(""); }} />
+            <span>
+              <span className="font-medium text-slate-900">Hanya Virtual Account (transfer bank)</span>
+              <span className="block text-xs text-slate-500">Centang HANYA bank yang sudah aktif di Xendit (Dashboard Xendit → Payment Channels).</span>
+            </span>
+          </label>
+        </div>
+        {mode === "va" && (
+          <div className="grid grid-cols-2 gap-2">
+            {VA_CHANNELS.map((c) => (
+              <label key={c.code} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-sm ${picked.includes(c.code) ? "border-slate-900 bg-slate-50" : "border-slate-200"}`}>
+                <input type="checkbox" className="size-4 accent-slate-900" checked={picked.includes(c.code)} onChange={(e) => toggle(c.code, e.target.checked)} />
+                <span>
+                  {c.label}
+                  {c.min > minTotal && <span className="block text-[11px] text-amber-700">min. Rp{c.min.toLocaleString("id-ID")}</span>}
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="secondary" onClick={test} loading={busy === "test"}>
+            Uji ke Xendit
+          </Button>
+          <Button type="button" onClick={save} loading={busy === "save"} disabled={!dirty}>
+            Simpan metode
+          </Button>
+          {testUrl && (
+            <a href={testUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-sky-700 hover:underline">
+              Buka halaman uji ↗
+            </a>
+          )}
+        </div>
+        <p className="text-xs leading-relaxed text-slate-500">
+          Disarankan: klik <b>Uji ke Xendit</b> dulu, buka halaman uji untuk memastikan hanya Virtual Account yang tampil, lalu <b>Simpan</b>.
+          Bila suatu saat bank yang dipilih ditolak Xendit, pesanan tetap dibuat dengan semua metode dan hal itu dicatat di riwayat pesanan.
+        </p>
+      </div>
     </Card>
   );
 }
