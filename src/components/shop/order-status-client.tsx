@@ -7,6 +7,7 @@ import { cart } from "@/components/shop/cart-store";
 import { formatDateTime, formatRupiah, ORDER_STATUS } from "@/lib/format";
 import { HomeLink } from "@/components/shop/home-link";
 import { gaEvent } from "@/lib/ga";
+import { isAfterShipCutoff, SHIP_CUTOFF_LABEL, SHIP_CUTOFF_NOTE } from "@/lib/shop/shipping-cutoff";
 
 type Status = {
   order_number: string;
@@ -152,6 +153,7 @@ export function OrderStatusClient() {
               Lanjutkan pembayaran {formatRupiah(data.total)}
             </a>
             {data.payment_expires_at && <p className="text-xs text-muted">Batas pembayaran: {formatDateTime(data.payment_expires_at)} WIB</p>}
+            <p className="max-w-md text-xs text-muted">{SHIP_CUTOFF_NOTE}</p>
             <button type="button" onClick={load} className="inline-flex items-center gap-1.5 text-sm font-semibold text-navy-800">
               <RefreshCw className={`size-4 ${checking ? "animate-spin" : ""}`} /> Cek status sekarang
             </button>
@@ -175,6 +177,19 @@ export function OrderStatusClient() {
             </li>
           ))}
         </ol>
+      )}
+
+      {(data.status === "paid" || data.status === "processing") && (
+        <p className="mt-4 flex gap-2 rounded-2xl bg-cream px-5 py-4 text-sm text-ink">
+          <Truck className="mt-0.5 size-4 shrink-0 text-gold-600" aria-hidden="true" />
+          <span>
+            <strong className="font-semibold text-navy-900">Jadwal pengiriman: </strong>
+            {/* Relatif terhadap hari pembayaran (bukan "besok"), agar tetap benar bila halaman dibuka di hari berikutnya. */}
+            {data.paid_at && isAfterShipCutoff(new Date(data.paid_at))
+              ? `pembayaran Anda diterima di atas pukul ${SHIP_CUTOFF_LABEL}, sehingga pesanan dikirim keesokan harinya.`
+              : SHIP_CUTOFF_NOTE}
+          </span>
+        </p>
       )}
 
       <div className="mt-6 rounded-3xl border border-navy-900/10 bg-white p-6 sm:p-7">

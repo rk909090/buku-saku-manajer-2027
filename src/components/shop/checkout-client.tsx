@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowLeft, Loader2, Lock, Minus, Plus, ShieldCheck, Tag, Trash2, Truck, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Clock, Loader2, Lock, Minus, Plus, ShieldCheck, Tag, Trash2, Truck, X } from "lucide-react";
 import { cart, useCart } from "@/components/shop/cart-store";
 import { AreaCombobox, type AreaValue } from "@/components/shop/area-combobox";
 import { formatDateTime, formatRupiah } from "@/lib/format";
@@ -10,6 +10,7 @@ import { HomeLink } from "@/components/shop/home-link";
 import { CheckoutUnavailable } from "@/components/shop/checkout-unavailable";
 import { waLink } from "@/lib/whatsapp";
 import { BOOK_ITEM, gaEvent } from "@/lib/ga";
+import { SHIP_CUTOFF_NOTE } from "@/lib/shop/shipping-cutoff";
 
 type Product = {
   slug: string;
@@ -656,6 +657,9 @@ export function CheckoutClient() {
                 })}
               </fieldset>
             )}
+            <p className="mt-4 flex gap-2 rounded-xl bg-cream px-4 py-3 text-sm text-ink">
+              <Clock className="mt-0.5 size-4 shrink-0 text-gold-600" aria-hidden="true" /> {SHIP_CUTOFF_NOTE}
+            </p>
           </Section>
         </form>
 

@@ -10,6 +10,8 @@
  *   _**teks**_ = <em><strong>
  */
 
+import { SHIP_CUTOFF_NOTE } from "@/lib/shop/shipping-cutoff";
+
 /**
  * Sejak 17 Nov 2026 pembelian melalui keranjang & checkout situs sendiri (ongkir Biteship,
  * pembayaran Xendit). Link marketplace lama disimpan untuk referensi, tidak lagi dipakai di halaman.
@@ -452,7 +454,7 @@ export const faqs = [
   },
   {
     q: "Bagaimana proses pengiriman?",
-    a: "Ongkos kirim dihitung otomatis saat checkout berdasarkan alamat tujuan dan kurir yang Anda pilih. Setelah pembayaran diterima, pesanan diproses dan nomor resi dapat dilihat di halaman status pesanan.",
+    a: `Ongkos kirim dihitung otomatis saat checkout berdasarkan alamat tujuan dan kurir yang Anda pilih. Setelah pembayaran diterima, pesanan diproses dan nomor resi dapat dilihat di halaman status pesanan. ${SHIP_CUTOFF_NOTE}`,
   },
 ];
 
