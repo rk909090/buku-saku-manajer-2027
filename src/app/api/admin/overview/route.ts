@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
     )) as unknown as [[Record<string, number | string>]];
     const [byStatus] = await pool.query<RowDataPacket[]>("SELECT status, COUNT(*) AS n FROM orders GROUP BY status");
     const [daily] = await pool.query<RowDataPacket[]>(
-      `SELECT DATE(CONVERT_TZ(paid_at,'+00:00','+07:00')) AS day, COUNT(*) AS orders, SUM(total) AS revenue
+      // Tanggal WIB sebagai teks "YYYY-MM-DD" agar tidak bergeser oleh zona waktu proses Node saat diubah ke Date.
+      `SELECT DATE_FORMAT(CONVERT_TZ(paid_at,'+00:00','+07:00'),'%Y-%m-%d') AS day, COUNT(*) AS orders, SUM(total) AS revenue
          FROM orders WHERE status IN ${PAID} AND paid_at >= CURRENT_DATE - INTERVAL 14 DAY
         GROUP BY day ORDER BY day`
     );

@@ -79,12 +79,14 @@ export function OverviewClient() {
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <Card title="Pendapatan 14 hari terakhir">
-          <div className="flex h-48 items-end gap-1.5" role="img" aria-label="Grafik pendapatan harian 14 hari terakhir">
+          {/* Kolom harus meregang setinggi h-48 (tanpa items-end) dan batang diposisikan absolut di dasar wadahnya:
+              tinggi persen pada elemen biasa di wadah yang tingginya tidak pasti dihitung 0 → grafik tampak kosong. */}
+          <div className="flex h-48 gap-1.5" role="img" aria-label="Grafik pendapatan harian 14 hari terakhir">
             {days.map((x) => (
               <div key={x.key} className="group flex flex-1 flex-col items-center gap-1.5">
-                <div className="relative flex w-full flex-1 items-end">
+                <div className="relative w-full flex-1">
                   <div
-                    className="w-full rounded-t-md bg-slate-900 transition group-hover:bg-amber-500"
+                    className="absolute inset-x-0 bottom-0 rounded-t-md bg-slate-900 transition group-hover:bg-amber-500"
                     style={{ height: `${Math.max(2, (x.revenue / max) * 100)}%`, opacity: x.revenue ? 1 : 0.15 }}
                     title={`${x.key}: ${formatRupiah(x.revenue)} (${x.orders} pesanan)`}
                   />
