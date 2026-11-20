@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { getPool } from "@/lib/db";
 import { json, withAdmin } from "@/lib/shop/http";
+import { getSettings, shipConfigOf } from "@/lib/shop/settings";
+import { shipScheduleFor } from "@/lib/shop/shipping-schedule";
 
 const STATUSES = ["pending_payment", "paid", "processing", "shipped", "completed", "expired", "cancelled"];
 const PAGE_SIZE = 20;
@@ -38,6 +40,9 @@ export async function GET(request: NextRequest) {
            FROM orders o JOIN customers c ON c.id = o.customer_id ${w} ORDER BY o.id DESC LIMIT 5000`,
         args
       );
+      // Jadwal kirim (WIB) untuk pesanan lunas — sama dengan label di dashboard.
+      const cfg = shipConfigOf(await getSettings());
+      for (const r of rows) r.ship_date = r.paid_at && ["paid", "processing", "shipped", "completed"].includes(r.status) ? shipScheduleFor(r.paid_at, cfg).date : "";
       const cols = Object.keys(rows[0] || { order_number: "" });
       const esc = (v: unknown) => {
         const s = v instanceof Date ? v.toISOString() : v == null ? "" : String(v);
@@ -67,6 +72,7 @@ export async function GET(request: NextRequest) {
         ORDER BY o.id DESC LIMIT ? OFFSET ?`,
       [...args, PAGE_SIZE, (page - 1) * PAGE_SIZE]
     );
-    return json({ orders: rows, total: Number(count.n), page, pageSize: PAGE_SIZE });
+    // Jam batas & libur untuk menghitung jadwal kirim tiap pesanan di browser (label relatif "hari ini/besok").
+    return json({ orders: rows, total: Number(count.n), page, pageSize: PAGE_SIZE, shipConfig: shipConfigOf(await getSettings()) });
   });
 }

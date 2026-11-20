@@ -25,10 +25,15 @@ export type ShopSettings = {
   whatsapp_number: string;
   /** Kanal pembayaran Xendit yang ditampilkan (kode dipisah koma). Kosong = semua metode yang aktif di akun. */
   payment_channels: string;
+  /** Jam batas pengiriman "HH:MM" (WIB): pembayaran pada/di atas jam ini dikirim keesokan harinya. */
+  ship_cutoff: string;
+  /** Libur pengiriman: JSON [{start, end, label}] tanggal WIB "YYYY-MM-DD" (lihat shipping-schedule.ts). */
+  ship_holidays: string;
 };
 
 /** Kurir umum untuk paket buku menurut dokumentasi Biteship; admin bisa mengubahnya. */
 import { DEFAULT_WHATSAPP } from "@/lib/whatsapp";
+import { DEFAULT_CUTOFF, toShipConfig, type ShipConfig } from "@/lib/shop/shipping-schedule";
 
 export const DEFAULT_COURIERS = "jne,jnt,sicepat,anteraja,pos,idexpress,sap,tiki,ninja,lion";
 
@@ -43,7 +48,12 @@ const DEFAULTS: ShopSettings = {
   notify_on_pending: 0,
   whatsapp_number: DEFAULT_WHATSAPP,
   payment_channels: "",
+  ship_cutoff: DEFAULT_CUTOFF,
+  ship_holidays: "[]",
 };
+
+/** Konfigurasi jadwal kirim dari pengaturan (nilai rusak → default). */
+export const shipConfigOf = (s: Pick<ShopSettings, "ship_cutoff" | "ship_holidays">): ShipConfig => toShipConfig(s.ship_cutoff, s.ship_holidays);
 
 export async function getSettings(): Promise<ShopSettings> {
   await ensureSchema();

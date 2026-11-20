@@ -1,14 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CheckCircle2, CircleAlert } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarClock, CheckCircle2, CircleAlert, CreditCard, Mail, MessageCircle, PlugZap, Plus, Trash2, Truck, type LucideIcon } from "lucide-react";
 import { adminFetch } from "@/components/admin/api";
 import { formatWhatsapp, normalizeWhatsapp, waLink } from "@/lib/whatsapp";
 import { parseChannels, VA_CHANNELS } from "@/lib/shop/payment-channels";
 import { AreaCombobox, type AreaValue } from "@/components/shop/area-combobox";
+import {
+  cutoffLabel,
+  formatHolidayRange,
+  formatShipDate,
+  HOLIDAY_NOTICE_DAYS,
+  isCutoff,
+  isYmd,
+  parseHolidays,
+  shipScheduleFor,
+  wib,
+  type Holiday,
+} from "@/lib/shop/shipping-schedule";
 import { Alert, Badge, Button, Card, Field, inputCls, Loading, PageHeader } from "@/components/admin/ui";
 
-type Settings = { origin_area_id: string; origin_area_name: string; origin_postal_code: string; couriers: string; max_qty_per_item: number; min_order_total: number; notify_emails: string; notify_on_pending: number; whatsapp_number: string; payment_channels: string };
+type Settings = { origin_area_id: string; origin_area_name: string; origin_postal_code: string; couriers: string; max_qty_per_item: number; min_order_total: number; notify_emails: string; notify_on_pending: number; whatsapp_number: string; payment_channels: string; ship_cutoff: string; ship_holidays: string };
 type Resp = { settings: Settings; defaultCouriers: string; integrations: { biteship: string; xendit: string; xenditWebhook: string; resend: string } };
 
 /** Kode kurir dari dokumentasi Biteship (couriers overview). */
@@ -84,75 +96,313 @@ export function SettingsClient() {
     </li>
   );
 
+  const sections: NavItem[] = [
+    { id: "pengiriman", label: "Pengiriman", icon: Truck, attention: !d.settings.origin_area_id },
+    { id: "jadwal-kirim", label: "Jadwal pengiriman", icon: CalendarClock },
+    { id: "pembayaran", label: "Metode pembayaran", icon: CreditCard },
+    { id: "kontak", label: "Kontak WhatsApp", icon: MessageCircle },
+    { id: "notifikasi", label: "Notifikasi email", icon: Mail, attention: integ.resend === "missing" },
+    { id: "integrasi", label: "Integrasi", icon: PlugZap, attention: [integ.xendit, integ.xenditWebhook, integ.biteship, integ.resend].includes("missing") },
+  ];
+
   return (
     <>
-      <PageHeader title="Pengaturan" subtitle="Pengiriman & integrasi pembayaran" />
-      <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <Card title="Pengiriman (Biteship)">
-          <form onSubmit={save} className="space-y-5">
-            {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
-            <Field label="Lokasi asal pengiriman" hint="Kecamatan tempat buku dikirim (gudang/kantor). Wajib diisi agar ongkir bisa dihitung.">
-              <AreaCombobox value={area} onChange={setArea} inputClassName={inputCls} placeholder="Ketik kecamatan / kota / kode pos asal…" />
-            </Field>
-            <fieldset>
-              <legend className="mb-2 text-sm font-medium text-slate-700">Kurir yang ditawarkan</legend>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {COURIERS.map(([code, name]) => (
-                  <label key={code} className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm ${couriers.includes(code) ? "border-slate-900 bg-slate-50" : "border-slate-200"}`}>
-                    <input
-                      type="checkbox"
-                      className="size-4 accent-slate-900"
-                      checked={couriers.includes(code)}
-                      onChange={(e) => setCouriers((c) => (e.target.checked ? [...c, code] : c.filter((x) => x !== code)))}
-                    />
-                    {name}
-                  </label>
-                ))}
-              </div>
-              <p className="mt-2 text-xs text-slate-500">Hanya layanan yang tersedia untuk rute & akun Biteship Anda yang akan muncul di checkout.</p>
-            </fieldset>
-            <Field label="Maksimal jumlah per produk dalam satu pesanan">
-              <input className={`${inputCls} max-w-32`} inputMode="numeric" value={maxQty} onChange={(e) => setMaxQty(e.target.value.replace(/\D/g, ""))} />
-            </Field>
-            <Field
-              label="Minimal total pembayaran (Rp)"
-              hint="Diskon/kupon tidak akan menurunkan total di bawah angka ini. Menurut tabel metode pembayaran Xendit: BCA VA & Alfamart/Indomaret min. Rp10.000, kartu Rp5.000, DANA/OVO Rp100, QRIS/ShopeePay/GoPay Rp1. Bila diturunkan di bawah Rp10.000, sebagian metode mungkin tidak bisa dipakai."
-            >
-              <input className={`${inputCls} max-w-40`} inputMode="numeric" value={minTotal} onChange={(e) => setMinTotal(e.target.value.replace(/\D/g, ""))} />
-            </Field>
-            <Button type="submit" loading={busy}>Simpan pengaturan</Button>
-          </form>
-        </Card>
+      <PageHeader title="Pengaturan" subtitle="Pengiriman, jadwal kirim, pembayaran, kontak, dan notifikasi toko" />
+      {/* Satu kolom konten + navigasi bagian (menempel saat digulir). Menggantikan grid 2 kolom yang tingginya timpang. */}
+      <div className="lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-10">
+        <SettingsNav items={sections} />
+        <div className="min-w-0 max-w-3xl space-y-10">
+          <SettingsSection id="pengiriman" title="Pengiriman" description="Lokasi asal paket, kurir yang ditawarkan di checkout, dan batas pesanan.">
+            <Card>
+              <form onSubmit={save} className="space-y-5">
+                {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+                <Field label="Lokasi asal pengiriman" hint="Kecamatan tempat buku dikirim (gudang/kantor). Wajib diisi agar ongkir bisa dihitung.">
+                  <AreaCombobox value={area} onChange={setArea} inputClassName={inputCls} placeholder="Ketik kecamatan / kota / kode pos asal…" />
+                </Field>
+                <fieldset>
+                  <legend className="mb-2 text-sm font-medium text-slate-700">Kurir yang ditawarkan</legend>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {COURIERS.map(([code, name]) => (
+                      <label key={code} className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm ${couriers.includes(code) ? "border-slate-900 bg-slate-50" : "border-slate-200"}`}>
+                        <input
+                          type="checkbox"
+                          className="size-4 accent-slate-900"
+                          checked={couriers.includes(code)}
+                          onChange={(e) => setCouriers((c) => (e.target.checked ? [...c, code] : c.filter((x) => x !== code)))}
+                        />
+                        {name}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">Hanya layanan yang tersedia untuk rute & akun Biteship Anda yang akan muncul di checkout.</p>
+                </fieldset>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Maks. jumlah per produk" hint="Dalam satu pesanan.">
+                    <input className={inputCls} inputMode="numeric" value={maxQty} onChange={(e) => setMaxQty(e.target.value.replace(/\D/g, ""))} />
+                  </Field>
+                  <Field label="Minimal total pembayaran (Rp)" hint="Diskon/kupon tidak menurunkan total di bawah angka ini.">
+                    <input className={inputCls} inputMode="numeric" value={minTotal} onChange={(e) => setMinTotal(e.target.value.replace(/\D/g, ""))} />
+                  </Field>
+                </div>
+                <p className="-mt-2 text-xs leading-relaxed text-slate-500">
+                  Menurut tabel metode pembayaran Xendit: BCA VA & Alfamart/Indomaret min. Rp10.000, kartu Rp5.000, DANA/OVO Rp100, QRIS/ShopeePay/GoPay Rp1.
+                  Bila minimal diturunkan di bawah Rp10.000, sebagian metode mungkin tidak bisa dipakai.
+                </p>
+                <div className="border-t border-slate-100 pt-4">
+                  <Button type="submit" loading={busy}>Simpan pengiriman</Button>
+                </div>
+              </form>
+            </Card>
+          </SettingsSection>
 
-        <div className="space-y-6">
-          <PaymentChannelsCard initial={d.settings.payment_channels} minTotal={d.settings.min_order_total} />
-          <WhatsappCard initial={d.settings.whatsapp_number} />
-          <NotificationCard
-            emails={notifyEmails}
-            setEmails={setNotifyEmails}
-            pending={notifyPending}
-            setPending={setNotifyPending}
-            resendReady={integ.resend !== "missing"}
-          />
-          <Card title="Integrasi">
-            <ul className="-my-3 divide-y divide-slate-100">
-              {row("Xendit secret key", integ.xendit, "XENDIT_SECRET_KEY")}
-              {row("Xendit webhook token", integ.xenditWebhook, "XENDIT_WEBHOOK_TOKEN")}
-              {row("Biteship API key", integ.biteship, "BITESHIP_API_KEY")}
-              {row("Resend API key (email)", integ.resend, "RESEND_API_KEY")}
-            </ul>
-            <p className="mt-4 text-xs leading-relaxed text-slate-500">
-              Nilai kunci tidak pernah ditampilkan. Isi/ubah di hPanel → Websites → bsm.humplus.com → Node.js → Environment variables.
-            </p>
-          </Card>
-          <Card title="Webhook Xendit">
-            <p className="text-sm text-slate-700">Daftarkan URL ini di dashboard Xendit (Settings → Webhooks) untuk event Payment Session:</p>
-            <code className="mt-2 block rounded-lg bg-slate-100 px-3 py-2 font-mono text-xs break-all text-slate-900">https://bsm.humplus.com/api/webhooks/xendit</code>
-            <p className="mt-2 text-xs text-slate-500">Salin “Webhook verification token” dari halaman yang sama ke XENDIT_WEBHOOK_TOKEN.</p>
-          </Card>
+          <SettingsSection id="jadwal-kirim" title="Jadwal pengiriman" description="Jam batas pengiriman harian dan libur pengiriman. Dipakai di checkout, halaman status, FAQ, email, dan daftar pesanan.">
+            <ShippingScheduleCard initialCutoff={d.settings.ship_cutoff} initialHolidays={d.settings.ship_holidays} />
+          </SettingsSection>
+
+          <SettingsSection id="pembayaran" title="Metode pembayaran" description="Metode yang tampil di halaman pembayaran Xendit.">
+            <PaymentChannelsCard initial={d.settings.payment_channels} minTotal={d.settings.min_order_total} />
+          </SettingsSection>
+
+          <SettingsSection id="kontak" title="Kontak WhatsApp" description="Nomor untuk tombol chat di landing page, checkout, dan email.">
+            <WhatsappCard initial={d.settings.whatsapp_number} />
+          </SettingsSection>
+
+          <SettingsSection id="notifikasi" title="Notifikasi email" description="Penerima notifikasi pesanan untuk admin, email uji, dan pratinjau desain email.">
+            <NotificationCard
+              emails={notifyEmails}
+              setEmails={setNotifyEmails}
+              pending={notifyPending}
+              setPending={setNotifyPending}
+              resendReady={integ.resend !== "missing"}
+            />
+          </SettingsSection>
+
+          <SettingsSection id="integrasi" title="Integrasi" description="Kunci API (diisi di hPanel) dan webhook Xendit.">
+            <Card>
+              <ul className="-my-3 divide-y divide-slate-100">
+                {row("Xendit secret key", integ.xendit, "XENDIT_SECRET_KEY")}
+                {row("Xendit webhook token", integ.xenditWebhook, "XENDIT_WEBHOOK_TOKEN")}
+                {row("Biteship API key", integ.biteship, "BITESHIP_API_KEY")}
+                {row("Resend API key (email)", integ.resend, "RESEND_API_KEY")}
+              </ul>
+              <p className="mt-4 text-xs leading-relaxed text-slate-500">
+                Nilai kunci tidak pernah ditampilkan. Isi/ubah di hPanel → Websites → bsm.humplus.com → Node.js → Environment variables.
+              </p>
+              <div className="mt-5 border-t border-slate-100 pt-5">
+                <p className="text-sm font-medium text-slate-800">Webhook Xendit</p>
+                <p className="mt-1 text-sm text-slate-600">Daftarkan URL ini di dashboard Xendit (Settings → Webhooks) untuk event Payment Session:</p>
+                <code className="mt-2 block rounded-lg bg-slate-100 px-3 py-2 font-mono text-xs break-all text-slate-900">https://bsm.humplus.com/api/webhooks/xendit</code>
+                <p className="mt-2 text-xs text-slate-500">Salin “Webhook verification token” dari halaman yang sama ke XENDIT_WEBHOOK_TOKEN.</p>
+              </div>
+            </Card>
+          </SettingsSection>
         </div>
       </div>
     </>
+  );
+}
+
+/* ───────────── Kerangka halaman pengaturan ───────────── */
+
+type NavItem = { id: string; label: string; icon: LucideIcon; attention?: boolean };
+
+function SettingsSection({ id, title, description, children }: { id: string; title: string; description: string; children: React.ReactNode }) {
+  return (
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-36 lg:scroll-mt-8">
+      <h2 id={`${id}-title`} className="text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
+      <p className="mt-1 mb-4 text-sm text-slate-500">{description}</p>
+      {children}
+    </section>
+  );
+}
+
+/** Navigasi bagian: vertikal & menempel di desktop, deret tab yang bisa digeser di ponsel. Menandai bagian yang sedang dibaca. */
+function SettingsNav({ items }: { items: NavItem[] }) {
+  const [active, setActive] = useState(items[0]?.id || "");
+  const ids = items.map((i) => i.id).join(",");
+  useEffect(() => {
+    const els = ids.split(",").map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e);
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActive(visible[0].target.id);
+      },
+      { rootMargin: "-15% 0px -70% 0px" }
+    );
+    els.forEach((e) => obs.observe(e));
+    return () => obs.disconnect();
+  }, [ids]);
+
+  // Ponsel: deret tab bisa digeser — pastikan tab aktif terlihat (tidak berpengaruh di desktop karena tidak meluap).
+  const listRef = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    const ul = listRef.current;
+    const a = ul?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!ul || !a || ul.scrollWidth <= ul.clientWidth) return;
+    const left = ul.scrollLeft + (a.getBoundingClientRect().left - ul.getBoundingClientRect().left) - 16;
+    ul.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+  }, [active]);
+
+  return (
+    <nav aria-label="Bagian pengaturan" className="sticky top-16 z-10 -mx-4 mb-6 border-b border-slate-200 bg-slate-50/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:top-8 lg:mx-0 lg:mb-0 lg:self-start lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+      <ul ref={listRef} className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+        {items.map((it) => {
+          const on = active === it.id;
+          return (
+            <li key={it.id} className="shrink-0">
+              <a
+                href={`#${it.id}`}
+                onClick={(e) => {
+                  // Gulir eksplisit: klik pada hash yang sama dengan URL saat ini tidak selalu menggulir.
+                  const el = document.getElementById(it.id);
+                  if (!el) return;
+                  e.preventDefault();
+                  setActive(it.id);
+                  el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  history.replaceState(null, "", `#${it.id}`);
+                }}
+                aria-current={on ? "true" : undefined}
+                className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition ${on ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200" : "text-slate-600 hover:bg-white/70 hover:text-slate-900"}`}
+              >
+                <it.icon className={`size-4 ${on ? "text-slate-900" : "text-slate-400"}`} aria-hidden="true" />
+                {it.label}
+                {it.attention && <span className="ml-auto size-2 rounded-full bg-amber-500" aria-label="perlu dilengkapi" />}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+/* ───────────── Jadwal pengiriman ───────────── */
+
+type HolidayRow = Holiday & { key: number };
+let rowSeq = 0;
+const toRows = (h: Holiday[]): HolidayRow[] => h.map((x) => ({ ...x, key: ++rowSeq }));
+const rowsKey = (cutoff: string, rows: Holiday[]) => JSON.stringify({ cutoff, rows: rows.map(({ start, end, label }) => ({ start, end, label: label.trim() })) });
+
+function ShippingScheduleCard({ initialCutoff, initialHolidays }: { initialCutoff: string; initialHolidays: string }) {
+  const [cutoff, setCutoff] = useState(initialCutoff);
+  const [rows, setRows] = useState<HolidayRow[]>(() => toRows(parseHolidays(initialHolidays)));
+  const [savedKey, setSavedKey] = useState(() => rowsKey(initialCutoff, parseHolidays(initialHolidays)));
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
+  const [now] = useState(() => Date.now());
+  const today = wib(now).date;
+
+  const rowError = (r: Holiday) =>
+    !isYmd(r.start) || !isYmd(r.end) ? "Isi tanggal mulai & selesai" : r.end < r.start ? "Tanggal selesai sebelum tanggal mulai" : "";
+  const invalid = !isCutoff(cutoff) || rows.some((r) => rowError(r));
+  const dirty = rowsKey(cutoff, rows) !== savedKey;
+  const preview = useMemo(
+    () => (isCutoff(cutoff) ? shipScheduleFor(new Date(now), { cutoff, holidays: rows.filter((r) => !rowError(r)) }) : null),
+    [cutoff, rows, now]
+  );
+  const update = (key: number, patch: Partial<Holiday>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+
+  async function save() {
+    if (invalid) return setMsg({ tone: "red", text: "Periksa kembali jam batas dan tanggal libur yang ditandai." });
+    setBusy(true);
+    setMsg(null);
+    try {
+      const j = await adminFetch<{ settings: Settings }>("/api/admin/settings/shipping", {
+        method: "PUT",
+        body: JSON.stringify({ ship_cutoff: cutoff, ship_holidays: rows.map(({ start, end, label }) => ({ start, end, label: label.trim() })) }),
+      });
+      const saved = parseHolidays(j.settings.ship_holidays);
+      setCutoff(j.settings.ship_cutoff);
+      setRows(toRows(saved));
+      setSavedKey(rowsKey(j.settings.ship_cutoff, saved));
+      setMsg({ tone: "green", text: "Jadwal pengiriman tersimpan dan langsung dipakai di checkout, email, dan dashboard." });
+    } catch (e) {
+      setMsg({ tone: "red", text: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <div className="space-y-6">
+        {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+
+        <div className="grid gap-4 sm:grid-cols-[11rem_1fr] sm:items-start">
+          <Field label="Jam batas harian">
+            <input type="time" step={60} className={inputCls} value={cutoff} onChange={(e) => setCutoff(e.target.value)} required />
+          </Field>
+          <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 sm:mt-7">
+            Pembayaran pada pukul <b className="text-slate-900">{isCutoff(cutoff) ? cutoffLabel(cutoff) : "—"}</b> atau setelahnya dikirim keesokan harinya.
+            {preview && (
+              <span className="mt-1 block text-xs text-slate-500">
+                Contoh: bila dibayar sekarang, pesanan dijadwalkan dikirim <b className="text-slate-700">{formatShipDate(preview.date)}</b>.
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-slate-100 pt-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="max-w-xl">
+              <p className="text-sm font-medium text-slate-800">Libur pengiriman</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                Akhir pekan & tanggal merah tetap dihitung hari kirim karena kurir beroperasi. Tambahkan periode di sini hanya bila tim tidak mengirim
+                paket. Pesanan yang jadwalnya jatuh pada hari libur dikirim pada hari pertama setelah libur. Libur yang sedang berlangsung atau dimulai
+                dalam {HOLIDAY_NOTICE_DAYS} hari diumumkan di checkout dan email pesanan.
+              </p>
+            </div>
+            <Button type="button" variant="secondary" onClick={() => setRows((rs) => [...rs, { start: today, end: today, label: "", key: ++rowSeq }])}>
+              <Plus className="size-4" aria-hidden="true" /> Tambah libur
+            </Button>
+          </div>
+
+          {rows.length === 0 ? (
+            <p className="mt-4 rounded-xl border border-dashed border-slate-200 px-4 py-5 text-center text-sm text-slate-500">Belum ada libur pengiriman.</p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {rows.map((r) => {
+                const err = rowError(r);
+                const state = err ? null : r.end < today ? { t: "Sudah lewat", c: "slate" as const } : r.start <= today ? { t: "Berlangsung", c: "amber" as const } : { t: "Akan datang", c: "blue" as const };
+                return (
+                  <li key={r.key} className={`rounded-xl border p-3 ${err ? "border-rose-300 bg-rose-50/40" : "border-slate-200"}`}>
+                    <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1.3fr_auto] sm:items-end">
+                      <Field label="Mulai">
+                        <input type="date" className={inputCls} value={r.start} onChange={(e) => update(r.key, { start: e.target.value, ...(r.end < e.target.value ? { end: e.target.value } : {}) })} />
+                      </Field>
+                      <Field label="Selesai">
+                        <input type="date" className={inputCls} value={r.end} min={r.start || undefined} onChange={(e) => update(r.key, { end: e.target.value })} />
+                      </Field>
+                      <Field label="Keterangan (opsional)">
+                        <input className={inputCls} maxLength={60} value={r.label} placeholder="mis. Cuti bersama" onChange={(e) => update(r.key, { label: e.target.value })} />
+                      </Field>
+                      <button
+                        type="button"
+                        onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))}
+                        className="inline-flex h-[42px] items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-medium text-rose-700 hover:bg-rose-50"
+                        aria-label={`Hapus libur ${r.start} sampai ${r.end}`}
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" /> <span className="sm:hidden">Hapus</span>
+                      </button>
+                    </div>
+                    <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                      {err ? <span className="font-medium text-rose-700">{err}</span> : <>{state && <Badge tone={state.c}>{state.t}</Badge>} {formatHolidayRange(r)}</>}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
+          <Button type="button" onClick={save} loading={busy} disabled={!dirty || invalid}>
+            Simpan jadwal
+          </Button>
+          {dirty && !invalid && <span className="text-xs text-amber-700">Ada perubahan yang belum disimpan</span>}
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -215,7 +465,7 @@ function NotificationCard({
   }
 
   return (
-    <Card title="Notifikasi email">
+    <Card>
       <div className="space-y-4">
         {!resendReady && (
           <Alert tone="amber">
@@ -294,7 +544,7 @@ function WhatsappCard({ initial }: { initial: string }) {
   }
 
   return (
-    <Card title="Kontak WhatsApp">
+    <Card>
       <form onSubmit={save} className="space-y-4">
         {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
         <Field
@@ -381,7 +631,7 @@ function PaymentChannelsCard({ initial, minTotal }: { initial: string; minTotal:
   }
 
   return (
-    <Card title="Metode pembayaran (Xendit)">
+    <Card>
       <div className="space-y-4">
         {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
         <div className="grid gap-2">

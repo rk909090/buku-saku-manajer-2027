@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Download, Search } from "lucide-react";
 import { adminFetch } from "@/components/admin/api";
-import { Alert, Card, Empty, inputCls, Loading, PageHeader, Pagination, StatusBadge } from "@/components/admin/ui";
+import { Alert, Badge, Card, Empty, inputCls, Loading, PageHeader, Pagination, StatusBadge } from "@/components/admin/ui";
+import { adminShipLabel, shipScheduleFor, type ShipConfig } from "@/lib/shop/shipping-schedule";
 import { formatDateTime, formatRupiah, ORDER_STATUS } from "@/lib/format";
 
 type Row = {
@@ -17,6 +18,7 @@ type Row = {
   courier_service_name: string;
   tracking_number: string | null;
   created_at: string;
+  paid_at: string | null;
   customer_id: number;
   customer_name: string;
   customer_email: string;
@@ -25,6 +27,15 @@ type Row = {
 
 const TABS = ["", "paid", "processing", "shipped", "pending_payment", "completed", "cancelled", "expired"];
 
+function ShipLabel({ date }: { date: string }) {
+  const l = adminShipLabel(date);
+  return (
+    <span className="mt-1.5 block">
+      <Badge tone={l.tone}>{l.text}</Badge>
+    </span>
+  );
+}
+
 export function OrdersClient() {
   const sp = useSearchParams();
   const router = useRouter();
@@ -32,7 +43,7 @@ export function OrdersClient() {
   const page = Number(sp.get("page") || 1) || 1;
   const qParam = sp.get("q") || "";
   const [q, setQ] = useState(qParam);
-  const [data, setData] = useState<{ orders: Row[]; total: number; page: number; pageSize: number } | null>(null);
+  const [data, setData] = useState<{ orders: Row[]; total: number; page: number; pageSize: number; shipConfig?: ShipConfig } | null>(null);
   const [err, setErr] = useState("");
 
   const query = (over: Record<string, string | number>) => {
@@ -119,7 +130,13 @@ export function OrdersClient() {
                       <p className="font-medium text-slate-900">{o.customer_name}</p>
                       <p className="text-xs text-slate-500">{o.customer_email}</p>
                     </td>
-                    <td className="px-5 py-3.5"><StatusBadge status={o.status} /></td>
+                    <td className="px-5 py-3.5">
+                      <StatusBadge status={o.status} />
+                      {/* Jadwal kirim hanya relevan untuk pesanan lunas yang belum dikirim. */}
+                      {(o.status === "paid" || o.status === "processing") && o.paid_at && data.shipConfig && (
+                        <ShipLabel date={shipScheduleFor(o.paid_at, data.shipConfig).date} />
+                      )}
+                    </td>
                     <td className="hidden px-5 py-3.5 text-slate-700 lg:table-cell">
                       {o.courier_name} {o.courier_service_name}
                       {o.tracking_number && <p className="font-mono text-xs text-slate-500">{o.tracking_number}</p>}

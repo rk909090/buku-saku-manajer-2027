@@ -7,12 +7,14 @@ import { ArrowLeft, Check, Copy, MessageCircle, RefreshCw, Trash2 } from "lucide
 import { adminFetch } from "@/components/admin/api";
 import { Alert, Button, Card, inputCls, Loading, StatusBadge } from "@/components/admin/ui";
 import { formatDateTime, formatRupiah, ORDER_STATUS } from "@/lib/format";
+import { adminShipLabel, cutoffLabel, formatShipDate, shipScheduleFor, type ShipConfig } from "@/lib/shop/shipping-schedule";
 
 type Detail = {
   order: Record<string, string | number | null>;
   items: { id: number; name: string; unit_price: number; original_price: number | null; discount_name: string | null; quantity: number; weight_g: number }[];
   events: { type: string; message: string; actor: string | null; created_at: string }[];
   allowedNext: string[];
+  shipConfig?: ShipConfig;
 };
 
 const ACTION_LABEL: Record<string, string> = {
@@ -167,6 +169,9 @@ export function OrderDetailClient() {
                 {o.courier_name} {o.courier_service_name}
                 {o.shipping_etd ? ` · ${o.shipping_etd}` : ""}
               </p>
+              {(o.status === "paid" || o.status === "processing") && o.paid_at && d.shipConfig && (
+                <ShipPlan paidAt={String(o.paid_at)} cfg={d.shipConfig} />
+              )}
             </Card>
           </div>
 
@@ -249,6 +254,26 @@ export function OrderDetailClient() {
         </div>
       </div>
     </>
+  );
+}
+
+/** Jadwal kirim pesanan lunas menurut jam batas & libur di Pengaturan. */
+function ShipPlan({ paidAt, cfg }: { paidAt: string; cfg: ShipConfig }) {
+  const s = shipScheduleFor(paidAt, cfg);
+  const l = adminShipLabel(s.date);
+  const why = s.holiday
+    ? `Libur pengiriman${s.holiday.label ? ` (${s.holiday.label})` : ""}`
+    : s.afterCutoff
+      ? `Dibayar di atas pukul ${cutoffLabel(cfg.cutoff)}`
+      : `Dibayar sebelum pukul ${cutoffLabel(cfg.cutoff)}`;
+  const box = { green: "bg-emerald-50 text-emerald-900", blue: "bg-sky-50 text-sky-900", amber: "bg-amber-50 text-amber-900", red: "bg-rose-50 text-rose-900" }[l.tone];
+  return (
+    <div className={`mt-3 rounded-lg px-3 py-2 text-sm ${box}`}>
+      <p className="font-semibold">{l.text}</p>
+      <p className="text-xs opacity-80">
+        Jadwal: {formatShipDate(s.date)} · {why}
+      </p>
+    </div>
   );
 }
 

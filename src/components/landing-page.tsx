@@ -26,7 +26,8 @@ import {
   closing,
   company,
   faqHeading,
-  faqs,
+  buildFaqs,
+  type Faq as FaqItem,
   hero,
   institute,
   offer,
@@ -60,6 +61,8 @@ import { CartLink } from "@/components/shop/cart-link";
 import { BOOK_FACTS } from "@/lib/seo";
 import { getLandingPromo } from "@/lib/shop/landing-promo";
 import { getPublicWhatsapp } from "@/lib/shop/public-contact";
+import { getPublicShipConfig } from "@/lib/shop/public-shipping";
+import { cutoffNote } from "@/lib/shop/shipping-schedule";
 import { waLink } from "@/lib/whatsapp";
 import { currentDeal, type LandingPromo } from "@/lib/promo-deal";
 import { MobilePromoPrice, MobilePromoStrip, PromoCountdown, PromoPriceText, PromoPriceTag } from "@/components/promo/promo-ui";
@@ -80,11 +83,13 @@ function abInitScript(variantId: string) {
 export async function LandingPage({ variant }: { variant: HeadlineVariant }) {
   // Diskon produk (cache ±1 menit + invalidasi saat admin mengubah diskon) — ikut di HTML statis.
   // Nomor WhatsApp dari pengaturan admin (cache ±1 menit, diperbarui segera saat disimpan).
-  const [promo, whatsapp] = await Promise.all([getLandingPromo(), getPublicWhatsapp()]);
+  // Jam batas pengiriman untuk FAQ (cache ±1 menit, diperbarui segera saat admin menyimpan).
+  const [promo, whatsapp, shipCfg] = await Promise.all([getLandingPromo(), getPublicWhatsapp(), getPublicShipConfig()]);
+  const faqs = buildFaqs(cutoffNote(shipCfg));
   // "<" di-escape agar teks JSON tidak bisa menutup tag <script>.
   const deal = currentDeal(promo, null); // diskon yang berlaku saat data diambil server
   const offer = promo ? { price: deal ? deal.price : promo.basePrice, validUntil: deal?.endsAt ? new Date(deal.endsAt) : null } : undefined;
-  const jsonLd = JSON.stringify(buildStructuredData(offer)).replace(/</g, "\\u003c");
+  const jsonLd = JSON.stringify(buildStructuredData(offer, faqs)).replace(/</g, "\\u003c");
 
   return (
     <>
@@ -108,7 +113,7 @@ export async function LandingPage({ variant }: { variant: HeadlineVariant }) {
         <Institute />
         <Reviews />
         <Offer promo={promo} />
-        <Faq />
+        <Faq faqs={faqs} />
         <Closing promo={promo} />
       </main>
       <SiteFooter />
@@ -784,7 +789,7 @@ function Offer({ promo }: { promo: LandingPromo | null }) {
 
 /* ───────────────────────── FAQ [S2] ───────────────────────── */
 
-function Faq() {
+function Faq({ faqs }: { faqs: FaqItem[] }) {
   return (
     <section className="bg-cream py-16 sm:py-24">
       <Container className="max-w-3xl">

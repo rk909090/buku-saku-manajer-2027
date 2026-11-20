@@ -7,6 +7,7 @@ import { addEvent, confirmPaymentFromXendit } from "@/lib/shop/orders";
 import { ORDER_STATUS } from "@/lib/format";
 import { queueCustomerEmail } from "@/lib/email/notify";
 import { deleteOrder } from "@/lib/shop/cleanup";
+import { getSettings, shipConfigOf } from "@/lib/shop/settings";
 
 /** Transisi status yang boleh dilakukan admin. "paid" hanya dari Xendit (webhook / cek ulang). */
 const TRANSITIONS: Record<string, string[]> = {
@@ -34,7 +35,7 @@ async function load(id: number) {
     "SELECT type, message, actor, created_at FROM order_events WHERE order_id = ? ORDER BY id DESC",
     [id]
   );
-  return { order, items, events, allowedNext: TRANSITIONS[order.status as string] || [] };
+  return { order, items, events, allowedNext: TRANSITIONS[order.status as string] || [], shipConfig: shipConfigOf(await getSettings()) };
 }
 
 export async function GET(request: NextRequest, ctx: RouteContext<"/api/admin/orders/[id]">) {

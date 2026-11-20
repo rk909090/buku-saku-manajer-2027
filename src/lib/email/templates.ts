@@ -1,6 +1,6 @@
 import { company, WHATSAPP_URL } from "@/lib/content";
 import { formatDateTime, formatRupiah } from "@/lib/format";
-import { isAfterShipCutoff, SHIP_CUTOFF_LABEL, SHIP_CUTOFF_NOTE } from "@/lib/shop/shipping-cutoff";
+import { cutoffLabel, formatShipDate, publicShipNotes, scheduleSentence, shipScheduleFor, DEFAULT_SHIP_CONFIG, type ShipConfig, type ShipSchedule } from "@/lib/shop/shipping-schedule";
 
 /**
  * Template email transaksional (HTML + teks). Ditulis dengan tabel & gaya inline agar tampil
@@ -31,7 +31,25 @@ export type EmailOrder = {
   total: number;
   /** Tautan WhatsApp toko (dari pengaturan admin). */
   whatsappUrl: string;
+  /** Info jadwal kirim (jam batas & libur dari pengaturan admin), lihat shipInfo(). */
+  ship: ShipInfo;
 };
+
+export type ShipInfo = {
+  /** Aturan jam batas + pengumuman libur terdekat (untuk pesanan yang belum dibayar). */
+  notes: string[];
+  /** Jadwal kirim bila sudah dibayar. */
+  schedule: ShipSchedule | null;
+  /** Kalimat untuk pelanggan bila pengiriman tidak di hari pembayaran (jam batas/libur), selain itu null. */
+  scheduleText: string | null;
+  cutoffLabel: string;
+};
+
+/** Hitung info jadwal kirim untuk email dari waktu bayar & pengaturan. */
+export function shipInfo(paidAt: Date | null, cfg: ShipConfig, now: Date = new Date()): ShipInfo {
+  const schedule = paidAt ? shipScheduleFor(paidAt, cfg) : null;
+  return { notes: publicShipNotes(cfg, now), schedule, scheduleText: schedule ? scheduleSentence(schedule, cfg) : null, cutoffLabel: cutoffLabel(cfg.cutoff) };
+}
 
 export type CustomerEmailKind = "created" | "paid" | "processing" | "shipped" | "tracking" | "completed" | "cancelled" | "expired";
 
@@ -170,11 +188,19 @@ function shipping(o: EmailOrder) {
 const infoNote = (html: string) =>
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;"><tr><td style="background:${C.cream};border-left:4px solid ${C.gold};border-radius:10px;padding:12px 16px;font-size:14px;line-height:1.55;color:${C.ink};">${html}</td></tr></table>`;
 
-/** Kalimat jadwal kirim untuk pesanan yang sudah dibayar: "besok" bila dibayar di atas jam batas. */
-function shipSchedule(o: EmailOrder) {
-  return o.paidAt && isAfterShipCutoff(o.paidAt)
-    ? `Pembayaran Anda kami terima di atas pukul ${SHIP_CUTOFF_LABEL}, sehingga pesanan akan dikirim besok.`
-    : SHIP_CUTOFF_NOTE;
+/** Kalimat jadwal kirim untuk pesanan yang sudah dibayar: tanggal pasti bila tidak dikirim di hari pembayaran. */
+const shipSchedule = (o: EmailOrder) => o.ship.scheduleText || o.ship.notes[0];
+
+/** Catatan jadwal kirim untuk admin (selalu menyebut tanggal). */
+function adminShipLine(o: EmailOrder) {
+  const s = o.ship.schedule;
+  if (!s) return null;
+  const why = s.holiday
+    ? `libur pengiriman${s.holiday.label ? ` (${s.holiday.label})` : ""}`
+    : s.afterCutoff
+      ? `dibayar di atas pukul ${o.ship.cutoffLabel}`
+      : "dibayar sebelum jam batas";
+  return `${formatShipDate(s.date)}${s.date === s.paidDate ? " (hari pembayaran)" : ""} — ${why}`;
 }
 
 function trackingBox(o: EmailOrder) {
@@ -209,10 +235,10 @@ export function renderCustomerEmail(kind: CustomerEmailKind, o: EmailOrder) {
         (o.paymentUrl ? button(o.paymentUrl, "Bayar Sekarang") : "") +
         statusLink +
         `<div style="height:14px;line-height:14px;font-size:0;">&nbsp;</div>` +
-        infoNote(`<strong>Info pengiriman:</strong> ${SHIP_CUTOFF_NOTE}`) +
+        infoNote(`<strong>Info pengiriman:</strong> ${o.ship.notes.map(esc).join("<br>")}`) +
         summary(o) +
         shipping(o);
-      textLines = [`Selesaikan pembayaran ${formatRupiah(o.total)}${o.paymentExpiresAt ? ` sebelum ${wib(o.paymentExpiresAt)}` : ""}.`, o.paymentUrl ? `Bayar: ${o.paymentUrl}` : "", `Info pengiriman: ${SHIP_CUTOFF_NOTE}`];
+      textLines = [`Selesaikan pembayaran ${formatRupiah(o.total)}${o.paymentExpiresAt ? ` sebelum ${wib(o.paymentExpiresAt)}` : ""}.`, o.paymentUrl ? `Bayar: ${o.paymentUrl}` : "", ...o.ship.notes.map((n) => `Info pengiriman: ${n}`)];
       break;
     case "paid":
       subject = `Pembayaran pesanan ${o.orderNumber} diterima`;
@@ -221,7 +247,7 @@ export function renderCustomerEmail(kind: CustomerEmailKind, o: EmailOrder) {
       intro = `Halo ${first}, pembayaran Anda sudah kami terima${o.paidAt ? ` pada ${wib(o.paidAt)}` : ""}.`;
       body =
         p("Pesanan Anda segera kami siapkan. Kami akan mengirim email lagi beserta nomor resi saat paket dikirim.") +
-        infoNote(`<strong>Jadwal pengiriman:</strong> ${shipSchedule(o)}`) +
+        infoNote(`<strong>Jadwal pengiriman:</strong> ${esc(shipSchedule(o))}`) +
         button(o.statusUrl, "Lihat Status Pesanan") +
         summary(o) +
         shipping(o);
@@ -300,9 +326,7 @@ export function renderAdminNewOrder(o: EmailOrder, paid: boolean) {
   const subject = paid ? `🛒 Pesanan baru dibayar: ${o.orderNumber} — ${formatRupiah(o.total)}` : `Pesanan baru (menunggu bayar): ${o.orderNumber} — ${formatRupiah(o.total)}`;
   const body =
     p(paid ? `Pembayaran <strong>${formatRupiah(o.total)}</strong> diterima${o.paidAt ? ` pada ${wib(o.paidAt)}` : ""}. Pesanan siap diproses.` : `Pesanan dibuat ${wib(o.createdAt)} dan <strong>belum dibayar</strong>.`) +
-    (paid && o.paidAt && isAfterShipCutoff(o.paidAt)
-      ? infoNote(`<strong>Kirim besok:</strong> dibayar di atas pukul ${SHIP_CUTOFF_LABEL}; pelanggan sudah diberi tahu pesanan dikirim besok.`)
-      : "") +
+    (paid && adminShipLine(o) ? infoNote(`<strong>Jadwal kirim:</strong> ${esc(adminShipLine(o))}`) : "") +
     button(o.adminUrl, "Buka di Dashboard") +
     h2("Pelanggan") +
     `<div style="background:${C.cream};border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.7;">
@@ -326,7 +350,7 @@ export function renderAdminNewOrder(o: EmailOrder, paid: boolean) {
     `Pelanggan: ${o.customer.name} · ${o.customer.email} · ${o.customer.phone}`,
     `Kirim ke: ${o.recipient.name}, ${o.recipient.address}, ${o.recipient.areaName}`,
     `Kurir: ${o.courier}`,
-    ...(paid && o.paidAt && isAfterShipCutoff(o.paidAt) ? [`Kirim besok: dibayar di atas pukul ${SHIP_CUTOFF_LABEL}.`] : []),
+    ...(paid && adminShipLine(o) ? [`Jadwal kirim: ${adminShipLine(o)}`] : []),
     ...o.items.map((i) => `- ${i.name} × ${i.qty}`),
     `Total: ${formatRupiah(o.total)}`,
     "",
@@ -373,5 +397,6 @@ export function sampleOrder(): EmailOrder {
     shippingDiscount: 0,
     total: 134000,
     whatsappUrl: WHATSAPP_URL,
+    ship: shipInfo(now, DEFAULT_SHIP_CONFIG, now),
   };
 }

@@ -2,7 +2,8 @@ import { connection } from "next/server";
 import { isDbConfigured } from "@/lib/db";
 import { errorResponse, json } from "@/lib/shop/http";
 import { listProducts, shippingReady } from "@/lib/shop/orders";
-import { getSettings } from "@/lib/shop/settings";
+import { getSettings, shipConfigOf } from "@/lib/shop/settings";
+import { publicShipNotes } from "@/lib/shop/shipping-schedule";
 import { integrationStatus } from "@/lib/shop/env";
 import { activeDiscounts, bestDiscount, hasRedeemableCoupon } from "@/lib/shop/promo";
 import { channelLabel, parseChannels } from "@/lib/shop/payment-channels";
@@ -41,6 +42,8 @@ export async function GET() {
       // Nama bank VA yang ditampilkan Xendit (kosong = semua metode yang aktif).
       paymentBanks: parseChannels(settings.payment_channels).map(channelLabel),
       couponsEnabled,
+      // Aturan jam batas + libur pengiriman terdekat (dari pengaturan admin).
+      shipNotes: publicShipNotes(shipConfigOf(settings)),
       checkout: {
         ready: ship.ok && integ.biteship !== "missing" && integ.xendit !== "missing" && integ.xenditWebhook !== "missing",
         reason: !ship.ok

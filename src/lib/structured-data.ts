@@ -1,4 +1,4 @@
-import { aboutBook, chapters, faqs, price, readers } from "@/lib/content";
+import { aboutBook, buildFaqs, chapters, price, readers, type Faq } from "@/lib/content";
 import { AUTHOR, ORGANIZATION, SEO_DESCRIPTION, SEO_TITLE, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 /**
@@ -23,7 +23,7 @@ const id = {
  * `offer` (opsional): harga yang sedang tampil di halaman (mis. harga promo) — structured data harus sama
  * dengan harga yang terlihat. Tanpa itu dipakai harga dari content.ts.
  */
-export function buildStructuredData(offer?: { price: number; validUntil: Date | null }) {
+export function buildStructuredData(offer?: { price: number; validUntil: Date | null }, faqs: Faq[] = buildFaqs()) {
   // Foto asli buku (bukan render 3D).
   const cover = `${SITE_URL}/images/buku/sampul-depan.jpg`;
   const coverPhoto = `${SITE_URL}/images/buku/sampul-foto.webp`;

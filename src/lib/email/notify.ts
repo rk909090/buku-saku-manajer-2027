@@ -3,10 +3,10 @@ import { after } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { getPool } from "@/lib/db";
 import { SITE_ORIGIN } from "@/lib/shop/env";
-import { getSettings } from "@/lib/shop/settings";
+import { getSettings, shipConfigOf } from "@/lib/shop/settings";
 import { waLink } from "@/lib/whatsapp";
 import { sendEmail } from "@/lib/email/send";
-import { CUSTOMER_EMAIL_LABEL, renderAdminNewOrder, renderCustomerEmail, type CustomerEmailKind, type EmailOrder } from "@/lib/email/templates";
+import { CUSTOMER_EMAIL_LABEL, renderAdminNewOrder, renderCustomerEmail, shipInfo, type CustomerEmailKind, type EmailOrder } from "@/lib/email/templates";
 
 /**
  * Notifikasi email pesanan. Dijadwalkan dengan `after()` (dijalankan setelah respons HTTP selesai)
@@ -90,6 +90,7 @@ export async function loadEmailOrder(orderId: number): Promise<EmailOrder | null
     shippingDiscount: Number(o.shipping_discount || 0),
     total: Number(o.total),
     whatsappUrl: waLink(settings.whatsapp_number),
+    ship: shipInfo(o.paid_at || null, shipConfigOf(settings)),
   };
 }
 

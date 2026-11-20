@@ -10,7 +10,7 @@
  *   _**teks**_ = <em><strong>
  */
 
-import { SHIP_CUTOFF_NOTE } from "@/lib/shop/shipping-cutoff";
+import { cutoffNote, DEFAULT_SHIP_CONFIG } from "@/lib/shop/shipping-schedule";
 
 /**
  * Sejak 17 Nov 2026 pembelian melalui keranjang & checkout situs sendiri (ongkir Biteship,
@@ -423,7 +423,11 @@ export const offer = {
  *   alur checkout situs (Biteship + Xendit); di sumber jawabannya masih "[ISI ADMIN]".
  */
 export const faqHeading = "Pertanyaan yang Sering Diajukan";
-export const faqs = [
+/**
+ * FAQ. `shipNote` = aturan jam batas pengiriman dari pengaturan admin (lihat getPublicShipConfig);
+ * tanpa argumen dipakai jam batas default.
+ */
+export const buildFaqs = (shipNote: string = cutoffNote(DEFAULT_SHIP_CONFIG)) => [
   {
     q: "Buku Saku Manajer membahas tentang apa?",
     a: "Membahas panduan praktis tugas pokok, fungsi, tanggung jawab, dan keterampilan manajerial dalam 6 bab terstruktur: mulai dari transisi peran manajer baru, penetapan target dan perencanaan, sistem kontrol eksekusi, teknik delegasi dan menegur bawahan, pengukuran kinerja, hingga kepemimpinan bisnis.",
@@ -454,9 +458,10 @@ export const faqs = [
   },
   {
     q: "Bagaimana proses pengiriman?",
-    a: `Ongkos kirim dihitung otomatis saat checkout berdasarkan alamat tujuan dan kurir yang Anda pilih. Setelah pembayaran diterima, pesanan diproses dan nomor resi dapat dilihat di halaman status pesanan. ${SHIP_CUTOFF_NOTE}`,
+    a: `Ongkos kirim dihitung otomatis saat checkout berdasarkan alamat tujuan dan kurir yang Anda pilih. Setelah pembayaran diterima, pesanan diproses dan nomor resi dapat dilihat di halaman status pesanan. ${shipNote}`,
   },
 ];
+export type Faq = ReturnType<typeof buildFaqs>[number];
 
 /* ───────────── PENUTUP [S2] ───────────── */
 export const closing = {

@@ -4,6 +4,8 @@ import type { RowDataPacket } from "mysql2/promise";
 import { ensureSchema, getPool, isDbConfigured } from "@/lib/db";
 import { clientIp, errorResponse, json, rateLimited } from "@/lib/shop/http";
 import { confirmPaymentFromXendit } from "@/lib/shop/orders";
+import { getSettings, shipConfigOf } from "@/lib/shop/settings";
+import { publicShipNotes, scheduleSentence, shipScheduleFor } from "@/lib/shop/shipping-schedule";
 
 /**
  * Status pesanan untuk pembeli. Akses butuh token rahasia per pesanan (?t=), yang hanya
@@ -54,6 +56,9 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/shop/ord
       "SELECT name, unit_price, original_price, quantity FROM order_items WHERE order_id = ?",
       [o.id]
     );
+    // Jadwal kirim menurut jam batas & libur di pengaturan saat ini.
+    const cfg = shipConfigOf(await getSettings());
+    const schedule = o.paid_at ? shipScheduleFor(o.paid_at, cfg) : null;
     return json({
       order_number: o.order_number,
       status: o.status,
@@ -74,6 +79,11 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/shop/ord
       tracking_number: o.tracking_number,
       created_at: o.created_at,
       items,
+      shipping_info: {
+        notes: publicShipNotes(cfg),
+        date: schedule?.date || null,
+        schedule_text: schedule ? scheduleSentence(schedule, cfg) : null,
+      },
     });
   } catch (e) {
     return errorResponse(e);

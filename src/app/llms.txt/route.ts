@@ -1,4 +1,6 @@
-import { aboutBook, chapters, faqs, readers } from "@/lib/content";
+import { aboutBook, buildFaqs, chapters, readers, type Faq } from "@/lib/content";
+import { getPublicShipConfig } from "@/lib/shop/public-shipping";
+import { cutoffNote } from "@/lib/shop/shipping-schedule";
 import { AUTHOR, BOOK_FACTS, ORGANIZATION, SEO_DESCRIPTION, SITE_URL } from "@/lib/seo";
 
 /**
@@ -8,7 +10,7 @@ import { AUTHOR, BOOK_FACTS, ORGANIZATION, SEO_DESCRIPTION, SITE_URL } from "@/l
 const plain = (s: string) =>
   s.replace(/_\*\*|\*\*_|\*\*/g, "").replace(/(^|[\s(“‘])_|_(?=[\s.,)”’]|$)/g, "$1");
 
-function build() {
+function build(faqs: Faq[]) {
   const lines: string[] = [];
   lines.push("# Buku Saku Manajer — Edisi Kedua", "");
   lines.push(`> ${SEO_DESCRIPTION}`, "");
@@ -53,8 +55,10 @@ function build() {
   return lines.join("\n");
 }
 
-export function GET() {
-  return new Response(build(), {
+export async function GET() {
+  // Jam batas pengiriman dari pengaturan admin (cache ±1 menit; default bila database tidak terjangkau).
+  const faqs = buildFaqs(cutoffNote(await getPublicShipConfig()));
+  return new Response(build(faqs), {
     headers: { "Content-Type": "text/markdown; charset=utf-8" },
   });
 }

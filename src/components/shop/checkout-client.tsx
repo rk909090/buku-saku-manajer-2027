@@ -10,7 +10,6 @@ import { HomeLink } from "@/components/shop/home-link";
 import { CheckoutUnavailable } from "@/components/shop/checkout-unavailable";
 import { waLink } from "@/lib/whatsapp";
 import { BOOK_ITEM, gaEvent } from "@/lib/ga";
-import { SHIP_CUTOFF_NOTE } from "@/lib/shop/shipping-cutoff";
 
 type Product = {
   slug: string;
@@ -23,7 +22,7 @@ type Product = {
   available: boolean;
   stock: number | null;
 };
-type Catalog = { products: Product[]; maxQty: number; minOrderTotal: number; couponsEnabled: boolean; whatsapp: string; paymentBanks: string[]; checkout: { ready: boolean; reason: string } };
+type Catalog = { products: Product[]; maxQty: number; minOrderTotal: number; couponsEnabled: boolean; whatsapp: string; paymentBanks: string[]; shipNotes?: string[]; checkout: { ready: boolean; reason: string } };
 type AppliedCoupon = { code: string; label: string; description: string | null; type: string; discount: number; shippingDiscount: number | null; limitedByMinimum: boolean };
 const COUPON_RE = /^[A-Za-z0-9_-]{3,32}$/;
 type Rate = {
@@ -657,9 +656,16 @@ export function CheckoutClient() {
                 })}
               </fieldset>
             )}
-            <p className="mt-4 flex gap-2 rounded-xl bg-cream px-4 py-3 text-sm text-ink">
-              <Clock className="mt-0.5 size-4 shrink-0 text-gold-600" aria-hidden="true" /> {SHIP_CUTOFF_NOTE}
-            </p>
+            {!!catalog.shipNotes?.length && (
+              <div className="mt-4 flex gap-2 rounded-xl bg-cream px-4 py-3 text-sm text-ink">
+                <Clock className="mt-0.5 size-4 shrink-0 text-gold-600" aria-hidden="true" />
+                <div className="space-y-1">
+                  {catalog.shipNotes.map((n) => (
+                    <p key={n}>{n}</p>
+                  ))}
+                </div>
+              </div>
+            )}
           </Section>
         </form>
 
