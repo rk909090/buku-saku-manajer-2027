@@ -1,5 +1,6 @@
 import { company, WHATSAPP_URL } from "@/lib/content";
 import { formatDateTime, formatRupiah } from "@/lib/format";
+import { isAfterShipCutoff, SHIP_CUTOFF_LABEL, SHIP_CUTOFF_NOTE } from "@/lib/shop/shipping-cutoff";
 
 /**
  * Template email transaksional (HTML + teks). Ditulis dengan tabel & gaya inline agar tampil
@@ -165,6 +166,17 @@ function shipping(o: EmailOrder) {
   </div>`;
 }
 
+/** Kotak info kecil (mis. batas jam pengiriman). `html` harus sudah aman (tidak berisi data pengguna mentah). */
+const infoNote = (html: string) =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 14px;"><tr><td style="background:${C.cream};border-left:4px solid ${C.gold};border-radius:10px;padding:12px 16px;font-size:14px;line-height:1.55;color:${C.ink};">${html}</td></tr></table>`;
+
+/** Kalimat jadwal kirim untuk pesanan yang sudah dibayar: "besok" bila dibayar di atas jam batas. */
+function shipSchedule(o: EmailOrder) {
+  return o.paidAt && isAfterShipCutoff(o.paidAt)
+    ? `Pembayaran Anda kami terima di atas pukul ${SHIP_CUTOFF_LABEL}, sehingga pesanan akan dikirim besok.`
+    : SHIP_CUTOFF_NOTE;
+}
+
 function trackingBox(o: EmailOrder) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 4px;"><tr><td style="background:${C.cream};border:1px solid ${C.line};border-left:4px solid ${C.gold};border-radius:12px;padding:16px 18px;">
     <div style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:${C.muted};font-weight:800;">Nomor resi · ${esc(o.courier)}</div>
@@ -196,17 +208,24 @@ export function renderCustomerEmail(kind: CustomerEmailKind, o: EmailOrder) {
         p(`Silakan bayar <strong>${formatRupiah(o.total)}</strong>${o.paymentExpiresAt ? ` sebelum <strong>${wib(o.paymentExpiresAt)}</strong>` : ""}. Lewat dari batas waktu, pesanan dibatalkan otomatis.`) +
         (o.paymentUrl ? button(o.paymentUrl, "Bayar Sekarang") : "") +
         statusLink +
+        `<div style="height:14px;line-height:14px;font-size:0;">&nbsp;</div>` +
+        infoNote(`<strong>Info pengiriman:</strong> ${SHIP_CUTOFF_NOTE}`) +
         summary(o) +
         shipping(o);
-      textLines = [`Selesaikan pembayaran ${formatRupiah(o.total)}${o.paymentExpiresAt ? ` sebelum ${wib(o.paymentExpiresAt)}` : ""}.`, o.paymentUrl ? `Bayar: ${o.paymentUrl}` : ""];
+      textLines = [`Selesaikan pembayaran ${formatRupiah(o.total)}${o.paymentExpiresAt ? ` sebelum ${wib(o.paymentExpiresAt)}` : ""}.`, o.paymentUrl ? `Bayar: ${o.paymentUrl}` : "", `Info pengiriman: ${SHIP_CUTOFF_NOTE}`];
       break;
     case "paid":
       subject = `Pembayaran pesanan ${o.orderNumber} diterima`;
       pill = { text: "Pembayaran diterima", tone: "green" };
       title = "Pembayaran berhasil 🎉";
       intro = `Halo ${first}, pembayaran Anda sudah kami terima${o.paidAt ? ` pada ${wib(o.paidAt)}` : ""}.`;
-      body = p("Pesanan Anda segera kami siapkan. Kami akan mengirim email lagi beserta nomor resi saat paket dikirim.") + button(o.statusUrl, "Lihat Status Pesanan") + summary(o) + shipping(o);
-      textLines = ["Pembayaran Anda sudah kami terima. Kami akan mengirim nomor resi saat paket dikirim."];
+      body =
+        p("Pesanan Anda segera kami siapkan. Kami akan mengirim email lagi beserta nomor resi saat paket dikirim.") +
+        infoNote(`<strong>Jadwal pengiriman:</strong> ${shipSchedule(o)}`) +
+        button(o.statusUrl, "Lihat Status Pesanan") +
+        summary(o) +
+        shipping(o);
+      textLines = ["Pembayaran Anda sudah kami terima. Kami akan mengirim nomor resi saat paket dikirim.", `Jadwal pengiriman: ${shipSchedule(o)}`];
       break;
     case "processing":
       subject = `Pesanan ${o.orderNumber} sedang dikemas`;
@@ -281,6 +300,9 @@ export function renderAdminNewOrder(o: EmailOrder, paid: boolean) {
   const subject = paid ? `🛒 Pesanan baru dibayar: ${o.orderNumber} — ${formatRupiah(o.total)}` : `Pesanan baru (menunggu bayar): ${o.orderNumber} — ${formatRupiah(o.total)}`;
   const body =
     p(paid ? `Pembayaran <strong>${formatRupiah(o.total)}</strong> diterima${o.paidAt ? ` pada ${wib(o.paidAt)}` : ""}. Pesanan siap diproses.` : `Pesanan dibuat ${wib(o.createdAt)} dan <strong>belum dibayar</strong>.`) +
+    (paid && o.paidAt && isAfterShipCutoff(o.paidAt)
+      ? infoNote(`<strong>Kirim besok:</strong> dibayar di atas pukul ${SHIP_CUTOFF_LABEL}; pelanggan sudah diberi tahu pesanan dikirim besok.`)
+      : "") +
     button(o.adminUrl, "Buka di Dashboard") +
     h2("Pelanggan") +
     `<div style="background:${C.cream};border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.7;">
@@ -304,6 +326,7 @@ export function renderAdminNewOrder(o: EmailOrder, paid: boolean) {
     `Pelanggan: ${o.customer.name} · ${o.customer.email} · ${o.customer.phone}`,
     `Kirim ke: ${o.recipient.name}, ${o.recipient.address}, ${o.recipient.areaName}`,
     `Kurir: ${o.courier}`,
+    ...(paid && o.paidAt && isAfterShipCutoff(o.paidAt) ? [`Kirim besok: dibayar di atas pukul ${SHIP_CUTOFF_LABEL}.`] : []),
     ...o.items.map((i) => `- ${i.name} × ${i.qty}`),
     `Total: ${formatRupiah(o.total)}`,
     "",
