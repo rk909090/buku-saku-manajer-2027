@@ -110,8 +110,47 @@ body {
   color: var(--color-gold-600);
 }
 
+/* Dashboard A/B: kartu varian terbaik (konfeti & kilau). */
+.ab-confetti {
+  position: absolute;
+  top: -12px;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: abConfetti 3.8s linear infinite;
+}
+@keyframes abConfetti {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  8% { opacity: 0.75; }
+  85% { opacity: 0.75; }
+  100% { transform: translateY(260px) rotate(540deg); opacity: 0; }
+}
+.ab-ribbon-shine {
+  position: relative;
+  overflow: hidden;
+}
+.ab-ribbon-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.6) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: shine 3s ease-in-out infinite;
+}
+.ab-trophy-bounce {
+  animation: abBounce 2.4s ease-in-out infinite;
+}
+@keyframes abBounce {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50% { transform: translateY(-4px) rotate(6deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  .ab-confetti { display: none; }
+  .ab-ribbon-shine::after,
+  .ab-trophy-bounce,
   .cta-shine::after,
   .float-book,
   .fade-up,
