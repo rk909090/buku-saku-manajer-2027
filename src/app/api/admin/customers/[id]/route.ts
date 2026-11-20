@@ -3,6 +3,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { getPool } from "@/lib/db";
 import { json, withAdmin } from "@/lib/shop/http";
 import { deleteCustomer } from "@/lib/shop/cleanup";
+import { getSettings, shipConfigOf } from "@/lib/shop/settings";
 
 export async function GET(request: NextRequest, ctx: RouteContext<"/api/admin/customers/[id]">) {
   return withAdmin(request, async () => {
@@ -12,11 +13,28 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/admin/cu
     const [c] = await pool.query<RowDataPacket[]>("SELECT id, name, email, phone, created_at FROM customers WHERE id = ?", [id]);
     if (!c[0]) return json({ error: "not_found" }, 404);
     const [orders] = await pool.query<RowDataPacket[]>(
-      `SELECT id, order_number, status, total, courier_name, courier_service_name, recipient_name, area_name, created_at, paid_at
-         FROM orders WHERE customer_id = ? ORDER BY id DESC`,
+      `SELECT o.id, o.order_number, o.status, o.total, o.courier_name, o.courier_service_name, o.recipient_name, o.area_name,
+              o.tracking_number, o.created_at, o.paid_at,
+              (SELECT COALESCE(SUM(oi.quantity),0) FROM order_items oi WHERE oi.order_id = o.id) AS qty
+         FROM orders o WHERE o.customer_id = ? ORDER BY o.id DESC`,
       [id]
     );
-    return json({ customer: c[0], orders });
+    // Alamat pengiriman yang pernah dipakai (unik), terbaru dulu.
+    const [addresses] = await pool.query<RowDataPacket[]>(
+      `SELECT recipient_name, recipient_phone, address, area_name, postal_code,
+              COUNT(*) AS orders, MAX(created_at) AS last_used
+         FROM orders WHERE customer_id = ?
+        GROUP BY recipient_name, recipient_phone, address, area_name, postal_code
+        ORDER BY last_used DESC
+        LIMIT 20`,
+      [id]
+    );
+    return json({
+      customer: c[0],
+      orders: orders.map((o) => ({ ...o, qty: Number(o.qty), total: Number(o.total) })),
+      addresses: addresses.map((a) => ({ ...a, orders: Number(a.orders) })),
+      shipConfig: shipConfigOf(await getSettings()),
+    });
   });
 }
 
