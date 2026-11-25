@@ -27,6 +27,21 @@ import { AB_COOKIE, AB_EXPERIMENT, AB_QUERY_PARAM, AB_VARIANTS } from "@/lib/ab-
 
 export const GOOGLE_TAG_ID = "GTM-KFQV25X2";
 
+/**
+ * Kontainer Google Tag Manager milik tim marketing Human Plus (dikirim 25 Nov 2026), untuk tag iklan
+ * yang mereka kelola sendiri. Berbeda dengan GOOGLE_TAG_ID (Google tag GA4): ini kontainer GTM web
+ * biasa, jadi dipasang dengan snippet resmi GTM yang mengirim event 'gtm.js'. Kode yang dikirim
+ * memakai bentuk gtag('js') — diuji 25 Nov 2026: bentuk itu tidak menghasilkan event 'gtm.js',
+ * sehingga trigger "All Pages / Page View" di GTM tidak akan jalan. Dengan snippet resmi, GA4 bsm
+ * tetap mengirim tepat satu page_view (sudah diuji). Saat dipasang, kontainer masih kosong (versi 1).
+ */
+export const GTM_CONTAINER_ID = "GTM-NNJN89S3";
+
+/** Snippet resmi Google Tag Manager (bagian <head>). */
+export function gtmContainerScript(id: string = GTM_CONTAINER_ID) {
+  return `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',${JSON.stringify(id)});`;
+}
+
 /** Nama event GA4 untuk klik tombol beli (sejak checkout situs: event e-commerce standar). */
 export const GA_CTA_EVENT = "add_to_cart";
 
