@@ -74,8 +74,15 @@ export function touchFromLocation(href: string, referrer: string, ownHost: strin
   try {
     if (referrer) {
       const r = new URL(referrer);
-      const h = r.host.toLowerCase();
-      if (h && h !== ownHost.toLowerCase() && !IGNORED_REFERRER_RE.test(h)) referrerHost = h;
+      if (r.protocol === "android-app:") {
+        // Dibuka dari aplikasi Android (mis. Gmail): perujuk berupa nama paket, bukan domain.
+        // Diberi awalan agar tidak tertukar dengan domain (com.google.android.gm ≠ google.com).
+        const pkg = (r.host || r.pathname.replace(/^\/+/, "").split("/")[0] || "").toLowerCase();
+        if (/^[a-z0-9_.]{3,150}$/.test(pkg)) referrerHost = `android-app:${pkg}`;
+      } else {
+        const h = r.host.toLowerCase();
+        if (h && h !== ownHost.toLowerCase() && !IGNORED_REFERRER_RE.test(h)) referrerHost = h;
+      }
     }
   } catch {
     /* referrer tidak valid → abaikan */
@@ -129,6 +136,36 @@ const META_SRC = /^(facebook|fb|instagram|ig|meta|messenger|audience_network)$/;
 const PAID_MEDIUM = /^(cpc|ppc|paid|paidsearch|paid_search|paid-search|cpm|cpv|cpa|display|banner|ads?|paid_social|paidsocial|paid-social|social_paid|social-paid|sponsored)$/;
 
 /**
+ * Aplikasi Android yang dikenal (perujuk "android-app:<paket>"). Paket lain → "Referral" dengan nama paketnya.
+ * Paket-paket ini adalah nama paket resmi di Google Play.
+ */
+const ANDROID_APPS: Record<string, { channel: Channel; name: string }> = {
+  "com.google.android.gm": { channel: "Email", name: "Gmail" },
+  "com.microsoft.office.outlook": { channel: "Email", name: "Outlook" },
+  "com.yahoo.mobile.client.android.mail": { channel: "Email", name: "Yahoo Mail" },
+  "com.samsung.android.email.provider": { channel: "Email", name: "Samsung Email" },
+  "ch.protonmail.android": { channel: "Email", name: "Proton Mail" },
+  "com.google.android.googlequicksearchbox": { channel: "Pencarian organik", name: "Aplikasi Google" },
+  "com.microsoft.bing": { channel: "Pencarian organik", name: "Bing" },
+  "com.whatsapp": { channel: "WhatsApp", name: "WhatsApp" },
+  "com.whatsapp.w4b": { channel: "WhatsApp", name: "WhatsApp Business" },
+  "com.instagram.android": { channel: "Media sosial", name: "Instagram" },
+  "com.instagram.barcelona": { channel: "Media sosial", name: "Threads" },
+  "com.facebook.katana": { channel: "Media sosial", name: "Facebook" },
+  "com.facebook.lite": { channel: "Media sosial", name: "Facebook Lite" },
+  "com.facebook.orca": { channel: "Media sosial", name: "Messenger" },
+  "com.zhiliaoapp.musically": { channel: "Media sosial", name: "TikTok" },
+  "com.ss.android.ugc.trill": { channel: "Media sosial", name: "TikTok" },
+  "com.twitter.android": { channel: "Media sosial", name: "X (Twitter)" },
+  "com.linkedin.android": { channel: "Media sosial", name: "LinkedIn" },
+  "com.google.android.youtube": { channel: "Media sosial", name: "YouTube" },
+  "com.pinterest": { channel: "Media sosial", name: "Pinterest" },
+  "com.reddit.frontpage": { channel: "Media sosial", name: "Reddit" },
+  "org.telegram.messenger": { channel: "Media sosial", name: "Telegram" },
+};
+const androidPkg = (ref: string) => (ref.startsWith("android-app:") ? ref.slice("android-app:".length) : null);
+
+/**
  * Kelompok kanal dari satu touch. Urutan aturan: click ID iklan → UTM medium/source → perujuk → langsung.
  * Catatan: fbclid juga ditempel Facebook pada link organik, jadi tanpa utm_medium berbayar dihitung "Media sosial".
  */
@@ -160,6 +197,9 @@ export function classifyChannel(t: Touch | null | undefined): Channel {
   }
 
   if (t.clickIdType === "fbclid") return "Media sosial";
+  // Aplikasi Android dicek lebih dulu: nama paket seperti com.google.android.gm juga cocok dengan pola "google."
+  const pkg = androidPkg(ref);
+  if (pkg) return ANDROID_APPS[pkg]?.channel ?? "Referral";
   if (/(^|\.)humplus\.(com|co\.id)$/.test(ref) || /(^|\.)humanplus\.co\.id$/.test(ref)) return "Situs Human Plus";
   if (/(^|\.)(wa\.me|whatsapp\.com)$/.test(ref)) return "WhatsApp";
   if (SEARCH_RE.test(ref)) return "Pencarian organik";
@@ -172,6 +212,8 @@ export function classifyChannel(t: Touch | null | undefined): Channel {
 export function sourceLabel(t: Pick<Touch, "source" | "medium" | "referrerHost" | "clickIdType"> | null | undefined) {
   if (!t) return "(langsung)";
   if (t.source || t.medium) return `${t.source || "(tanpa source)"} / ${t.medium || "(tanpa medium)"}`;
+  const pkg = t.referrerHost ? androidPkg(t.referrerHost) : null;
+  if (pkg) return `Aplikasi ${ANDROID_APPS[pkg]?.name ?? pkg} (Android)`;
   if (t.referrerHost) return t.referrerHost;
   if (t.clickIdType) return `(${t.clickIdType} tanpa UTM)`;
   return "(langsung)";
