@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image, { type StaticImageData } from "next/image";
 import { gaEvent } from "@/lib/ga";
+import { trackJourney } from "@/components/journey-tracker";
 
 /**
  * "Intip isi buku": kartu foto asli halaman buku + jendela pembesar (lightbox).
@@ -22,6 +23,7 @@ export function BookPreview({ topics }: { topics: PreviewTopic[] }) {
     const start = flat.findIndex((f) => f.topic.id === topics[topicIdx].id);
     setOpen(start);
     gaEvent("select_content", { content_type: "book_page_preview", content_id: topics[topicIdx].id });
+    trackJourney("preview_open", topics[topicIdx].id.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40) || null);
   };
 
   return (

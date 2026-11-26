@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
         `SELECT o.order_number, o.created_at, o.status, c.name, c.email, c.phone, o.recipient_name, o.recipient_phone,
                 o.address, o.area_name, o.postal_code, o.courier_name, o.courier_service_name, o.tracking_number,
                 o.subtotal, o.discount_total, o.coupon_code, o.coupon_discount, o.shipping_cost, o.shipping_discount, o.total, o.paid_at,
+                o.channel, o.utm_source, o.utm_medium, o.utm_campaign, o.utm_term, o.utm_content, o.click_id_type, o.referrer_host, o.landing_path,
                 (SELECT GROUP_CONCAT(CONCAT(oi.name,' x',oi.quantity) SEPARATOR '; ') FROM order_items oi WHERE oi.order_id = o.id) AS items
            FROM orders o JOIN customers c ON c.id = o.customer_id ${w} ORDER BY o.id DESC LIMIT 5000`,
         args
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
     )) as unknown as [[{ n: number }]];
     const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT o.id, o.order_number, o.status, o.total, o.courier_name, o.courier_service_name, o.tracking_number,
-              o.created_at, o.paid_at, c.id AS customer_id, c.name AS customer_name, c.email AS customer_email,
+              o.created_at, o.paid_at, o.channel, o.utm_campaign, c.id AS customer_id, c.name AS customer_name, c.email AS customer_email,
               (SELECT SUM(oi.quantity) FROM order_items oi WHERE oi.order_id = o.id) AS qty
          FROM orders o JOIN customers c ON c.id = o.customer_id ${w}
         ORDER BY o.id DESC LIMIT ? OFFSET ?`,

@@ -9,6 +9,7 @@ import { formatDateTime, formatRupiah } from "@/lib/format";
 import { HomeLink } from "@/components/shop/home-link";
 import { CheckoutUnavailable } from "@/components/shop/checkout-unavailable";
 import { waLink } from "@/lib/whatsapp";
+import { getOrderAttribution, trackJourney } from "@/components/journey-tracker";
 import { BOOK_ITEM, gaEvent } from "@/lib/ga";
 
 type Product = {
@@ -159,6 +160,7 @@ export function CheckoutClient() {
     if (!catalog || gaBegin.current || items.length === 0) return;
     gaBegin.current = true;
     gaEvent("begin_checkout", { value: subtotal, items: gaItems });
+    trackJourney("begin_checkout");
   }, [catalog, items.length, subtotal, gaItems]);
 
   // Ambil ongkir saat area / isi keranjang berubah.
@@ -199,6 +201,7 @@ export function CheckoutClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- linesKey merangkum isi keranjang
   }, [form.area?.id, linesKey, catalog?.checkout.ready]);
 
+  const trackedCoupon = useRef<string | null>(null);
   // Validasi kupon di server setiap kali kode, isi keranjang, atau ongkir berubah.
   useEffect(() => {
     if (!couponCode || !catalog || items.length === 0) {
@@ -225,6 +228,11 @@ export function CheckoutClient() {
         if (!r.ok) throw new Error(j.error || "Kupon tidak bisa dipakai");
         setCoupon(j);
         setCouponError("");
+        // Validasi berjalan ulang saat ongkir/keranjang berubah — catat sekali per kode.
+        if (trackedCoupon.current !== j.code) {
+          trackedCoupon.current = j.code;
+          trackJourney("coupon_applied");
+        }
       } catch (e) {
         if (cancelled) return;
         setCoupon(null);
@@ -271,6 +279,7 @@ export function CheckoutClient() {
       return;
     }
     setPaying(true);
+    trackJourney("pay_click");
     try {
       const r = await fetch("/api/shop/orders", {
         method: "POST",
@@ -289,6 +298,8 @@ export function CheckoutClient() {
           },
           courier: { code: selectedRate.courier_code, serviceCode: selectedRate.courier_service_code },
           couponCode: coupon?.code || null,
+          // UTM/perujuk pertama & terakhir + ID sesi (analisa pemasaran); tanpa data pribadi.
+          attribution: getOrderAttribution(),
         }),
       });
       const j = await r.json();
@@ -642,6 +653,7 @@ export function CheckoutClient() {
                           setCourier(key);
                           setPayError("");
                           gaEvent("add_shipping_info", { value: subtotal, shipping_tier: `${r.courier_name} ${r.courier_service_name}`, items: gaItems });
+                          trackJourney("shipping_selected", r.courier_code.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40) || null);
                         }}
                       />
                       <span className="min-w-0 flex-1">

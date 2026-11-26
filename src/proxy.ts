@@ -46,6 +46,13 @@ export function proxy(request: NextRequest) {
 
   const secure = request.nextUrl.protocol === "https:";
 
+  // Checkout: tanpa A/B rewrite, hanya memastikan ID pengunjung anonim ada (pengunjung dari iklan
+  // bisa langsung mendarat di /checkout tanpa melewati landing page).
+  if (request.nextUrl.pathname.startsWith("/checkout")) {
+    if (BOT_RE.test(request.headers.get("user-agent") ?? "")) return NextResponse.next();
+    return withVisitorId(request, NextResponse.next(), secure);
+  }
+
   // Bot / crawler (mesin pencari, AI, pratinjau link) selalu mendapat varian kontrol tanpa
   // cookie: judul yang diindeks stabil dan bot tidak ikut sebagai peserta A/B test.
   if (BOT_RE.test(request.headers.get("user-agent") ?? "")) {
@@ -105,5 +112,5 @@ function pickRandomVariant(): AbVariantId {
 }
 
 export const config = {
-  matcher: ["/", "/v/:path*", "/admin/:path*", "/admin"],
+  matcher: ["/", "/v/:path*", "/admin/:path*", "/admin", "/checkout", "/checkout/:path*"],
 };

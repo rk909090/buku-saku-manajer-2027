@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, MessageCircle, RefreshCw, Trash2, X } from "lucide-react";
 import { adminFetch } from "@/components/admin/api";
-import { Alert, Button, Card, inputCls, Loading, StatusBadge } from "@/components/admin/ui";
+import { Alert, Badge, Button, Card, inputCls, Loading, StatusBadge } from "@/components/admin/ui";
+import { classifyChannel, sanitizeTouch, sourceLabel, type Touch } from "@/lib/attribution";
 import { formatDateTime, formatRupiah, ORDER_STATUS } from "@/lib/format";
 import { adminShipLabel, cutoffLabel, formatShipDate, shipScheduleFor, type ShipConfig } from "@/lib/shop/shipping-schedule";
 
@@ -233,6 +234,7 @@ export function OrderDetailView({
       )}
     </Card>
   );
+  const sourceCard = <SourceCard o={o} />;
   const actionsCard = (
     <Card title="Tindakan">
       <div className="space-y-4">
@@ -313,6 +315,7 @@ export function OrderDetailView({
           {itemsCard}
           {shippingCard}
           {paymentCard}
+          {sourceCard}
           {historyCard}
           {deletable && <div className="flex justify-end">{deleteButton}</div>}
         </div>
@@ -341,6 +344,7 @@ export function OrderDetailView({
             {shippingCard}
           </div>
           {paymentCard}
+          {sourceCard}
         </div>
         <div className="space-y-6">
           {actionsCard}
@@ -406,6 +410,56 @@ function PanelFrame({
       </header>
       <div className="p-4">{children}</div>
     </section>
+  );
+}
+
+/** Sumber pesanan (UTM/perujuk) — tersimpan sejak 26 Nov 2026; pesanan lama tampil "belum tercatat". */
+function SourceCard({ o }: { o: Record<string, string | number | null> }) {
+  let first: Touch | null = null;
+  let last: Touch | null = null;
+  try {
+    const a = o.attribution ? JSON.parse(String(o.attribution)) : null;
+    first = sanitizeTouch(a?.first);
+    last = sanitizeTouch(a?.last);
+  } catch {
+    /* JSON rusak → tampilkan kolom saja */
+  }
+  const has = !!o.channel;
+  const v = (x: unknown) => (x == null || x === "" ? "—" : String(x));
+  return (
+    <Card title="Sumber pesanan" action={has ? <Badge tone="violet">{String(o.channel)}</Badge> : undefined}>
+      {!has ? (
+        <p className="text-sm text-slate-500">Belum tercatat — pesanan dibuat sebelum pencatatan sumber aktif (26 Nov 2026).</p>
+      ) : (
+        <>
+          <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            <Info k="utm_source" v={v(o.utm_source)} />
+            <Info k="utm_medium" v={v(o.utm_medium)} />
+            <Info k="utm_campaign" v={v(o.utm_campaign)} />
+            <Info k="utm_content" v={v(o.utm_content)} />
+            <Info k="utm_term" v={v(o.utm_term)} />
+            <Info k="ID klik iklan" v={v(o.click_id_type)} />
+            <Info k="Perujuk" v={v(o.referrer_host)} />
+            <Info k="Halaman pendaratan" v={v(o.landing_path)} />
+          </dl>
+          {first && last && first.ts !== last.ts && (
+            <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              Kunjungan pertama: <b>{classifyChannel(first)}</b> ({sourceLabel(first)}
+              {first.campaign ? ` · ${first.campaign}` : ""}) pada {formatDateTime(new Date(first.ts).toISOString())}
+            </p>
+          )}
+          {o.session_id && (
+            <p className="mt-2 text-xs text-slate-500">
+              Perjalanan pembeli bisa dilihat di{" "}
+              <Link href="/admin/journey" className="font-semibold text-slate-700 underline underline-offset-2">
+                Perjalanan Pengunjung
+              </Link>
+              .
+            </p>
+          )}
+        </>
+      )}
+    </Card>
   );
 }
 

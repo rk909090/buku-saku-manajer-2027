@@ -19,6 +19,8 @@ type Row = {
   tracking_number: string | null;
   created_at: string;
   paid_at: string | null;
+  channel: string | null;
+  utm_campaign: string | null;
   customer_id: number;
   customer_name: string;
   customer_email: string;
@@ -129,6 +131,12 @@ export function OrdersClient() {
                     <td className="px-5 py-3.5">
                       <p className="font-medium text-slate-900">{o.customer_name}</p>
                       <p className="text-xs text-slate-500">{o.customer_email}</p>
+                      {o.channel && (
+                        <p className="mt-0.5 truncate text-[11px] text-violet-700" title={o.utm_campaign ? `${o.channel} · ${o.utm_campaign}` : o.channel}>
+                          via {o.channel}
+                          {o.utm_campaign ? ` · ${o.utm_campaign}` : ""}
+                        </p>
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       <StatusBadge status={o.status} />

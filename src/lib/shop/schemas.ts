@@ -26,6 +26,16 @@ export const orderBody = z.object({
   }),
   courier: z.object({ code: z.string().min(1).max(32), serviceCode: z.string().min(1).max(48) }),
   couponCode: z.string().trim().max(32).nullable().optional(),
+  // Atribusi pemasaran dari browser (opsional; isinya dirapikan lagi oleh sanitizeTouch di server).
+  attribution: z
+    .object({
+      sessionId: z.string().uuid().nullable().optional(),
+      first: z.record(z.string(), z.unknown()).nullable().optional(),
+      last: z.record(z.string(), z.unknown()).nullable().optional(),
+    })
+    .nullable()
+    .optional()
+    .catch(null),
 });
 
 export const couponBody = z.object({

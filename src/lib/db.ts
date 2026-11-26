@@ -97,6 +97,18 @@ const SHOP_COLUMNS: [string, string, string][] = [
   ["coupons", "free_shipping", "free_shipping TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'kupon persen/nominal yang juga menggratiskan ongkir' AFTER max_discount"],
   ["order_items", "original_price", "original_price INT UNSIGNED NULL COMMENT 'harga sebelum diskon produk' AFTER unit_price"],
   ["order_items", "discount_name", "discount_name VARCHAR(120) NULL AFTER original_price"],
+  // Atribusi pemasaran (sejak 26 Nov 2026): touch terakhir non-langsung + JSON {first,last}. Pesanan lama = NULL.
+  ["orders", "session_id", "session_id CHAR(36) NULL AFTER visitor_id"],
+  ["orders", "channel", "channel VARCHAR(32) NULL AFTER session_id"],
+  ["orders", "utm_source", "utm_source VARCHAR(100) NULL AFTER channel"],
+  ["orders", "utm_medium", "utm_medium VARCHAR(100) NULL AFTER utm_source"],
+  ["orders", "utm_campaign", "utm_campaign VARCHAR(150) NULL AFTER utm_medium"],
+  ["orders", "utm_term", "utm_term VARCHAR(150) NULL AFTER utm_campaign"],
+  ["orders", "utm_content", "utm_content VARCHAR(150) NULL AFTER utm_term"],
+  ["orders", "click_id_type", "click_id_type VARCHAR(16) NULL AFTER utm_content"],
+  ["orders", "referrer_host", "referrer_host VARCHAR(190) NULL AFTER click_id_type"],
+  ["orders", "landing_path", "landing_path VARCHAR(190) NULL AFTER referrer_host"],
+  ["orders", "attribution", "attribution VARCHAR(2000) NULL COMMENT 'JSON {first,last} touch' AFTER landing_path"],
 ];
 
 /* ─────────────── Toko: produk, pesanan, pelanggan, admin ─────────────── */
@@ -250,6 +262,40 @@ const SHOP_SCHEMA = [
     expires_at  DATETIME(3)  NOT NULL,
     created_at  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (token_hash), KEY idx_admin (admin_id), KEY idx_expires (expires_at)
+  ) ${T}`,
+  // Perjalanan pengunjung (first-party, anonim): satu baris per sesi + event per langkah. Tanpa IP/user-agent.
+  `CREATE TABLE IF NOT EXISTS site_sessions (
+    id             CHAR(36)     NOT NULL COMMENT 'UUID acak dari browser, berganti setelah 30 menit tidak aktif',
+    visitor_id     CHAR(36)     NULL,
+    started_at     DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    last_seen      DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    device         VARCHAR(16)  NULL,
+    internal       TINYINT(1)   NOT NULL DEFAULT 0 COMMENT 'pratinjau ?hl= atau browser admin',
+    ab_variant     VARCHAR(8)   NULL,
+    channel        VARCHAR(32)  NULL,
+    utm_source     VARCHAR(100) NULL,
+    utm_medium     VARCHAR(100) NULL,
+    utm_campaign   VARCHAR(150) NULL,
+    utm_term       VARCHAR(150) NULL,
+    utm_content    VARCHAR(150) NULL,
+    click_id_type  VARCHAR(16)  NULL,
+    referrer_host  VARCHAR(190) NULL,
+    landing_path   VARCHAR(190) NULL,
+    page_views     INT UNSIGNED NOT NULL DEFAULT 0,
+    events         INT UNSIGNED NOT NULL DEFAULT 0,
+    max_scroll     TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    engaged_s      INT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (id), KEY idx_started (started_at), KEY idx_visitor (visitor_id)
+  ) ${T}`,
+  `CREATE TABLE IF NOT EXISTS site_events (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    session_id  CHAR(36)     NOT NULL,
+    created_at  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    event       VARCHAR(32)  NOT NULL,
+    path        VARCHAR(64)  NULL,
+    detail      VARCHAR(64)  NULL,
+    value       INT          NULL,
+    PRIMARY KEY (id), KEY idx_session (session_id, id), KEY idx_created_event (created_at, event)
   ) ${T}`,
 ];
 

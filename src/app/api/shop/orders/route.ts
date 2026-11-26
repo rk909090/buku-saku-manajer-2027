@@ -5,6 +5,24 @@ import { clientIp, errorResponse, json, rateLimited, sameOrigin } from "@/lib/sh
 import { createOrder } from "@/lib/shop/orders";
 import { queueAdminNewOrderEmail, queueCustomerEmail } from "@/lib/email/notify";
 import { orderBody } from "@/lib/shop/schemas";
+import { classifyChannel, sanitizeTouch } from "@/lib/attribution";
+
+/**
+ * Atribusi untuk disimpan di pesanan: touch terakhir non-langsung (bila tidak ada → touch pertama),
+ * kanal hasil klasifikasi server, dan JSON {first,last} untuk detail. Data dari browser tidak dipercaya
+ * begitu saja — semua dirapikan & dibatasi panjangnya oleh sanitizeTouch.
+ */
+function orderAttribution(a: { sessionId?: string | null; first?: unknown; last?: unknown } | null | undefined) {
+  const first = sanitizeTouch(a?.first);
+  const last = sanitizeTouch(a?.last);
+  const t = last ?? first;
+  return {
+    sessionId: a?.sessionId && UUID_RE.test(a.sessionId) ? a.sessionId.toLowerCase() : null,
+    channel: classifyChannel(t),
+    touch: t,
+    json: first || last ? JSON.stringify({ first, last }).slice(0, 2000) : null,
+  };
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -31,6 +49,7 @@ export async function POST(request: NextRequest) {
       couponCode: parsed.data.couponCode || null,
       abVariant: exp === AB_EXPERIMENT && isAbVariant(v) ? v : null,
       visitorId: UUID_RE.test(vid) ? vid : null,
+      attribution: orderAttribution(parsed.data.attribution),
     });
     // Email konfirmasi ke pembeli (+ admin bila diaktifkan) — dikirim setelah respons ini selesai.
     queueCustomerEmail(orderId, "created");

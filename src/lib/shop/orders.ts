@@ -7,6 +7,7 @@ import { getRates, type RateOption } from "@/lib/shop/biteship";
 import { createPaymentSession, getPaymentSession, XenditError, type CreateSessionInput } from "@/lib/shop/xendit";
 import { parseChannels } from "@/lib/shop/payment-channels";
 import { SITE_ORIGIN } from "@/lib/shop/env";
+import type { Touch } from "@/lib/attribution";
 import { activeDiscounts, applyMinimumTotal, bestDiscount, evaluateCoupon, type CouponQuote } from "@/lib/shop/promo";
 import { paymentLines } from "@/lib/shop/pricing";
 import { queueAdminNewOrderEmail, queueCustomerEmail } from "@/lib/email/notify";
@@ -126,6 +127,8 @@ export type CreateOrderInput = {
   couponCode: string | null;
   abVariant: string | null;
   visitorId: string | null;
+  /** Atribusi pemasaran (lihat orderAttribution di /api/shop/orders). */
+  attribution?: { sessionId: string | null; channel: string; touch: Touch | null; json: string | null };
 };
 
 async function addEvent(conn: PoolConnection | ReturnType<typeof getPool>, orderId: number, type: string, message: string, actor: string | null = null) {
@@ -133,6 +136,7 @@ async function addEvent(conn: PoolConnection | ReturnType<typeof getPool>, order
 }
 
 export async function createOrder(input: CreateOrderInput) {
+  const at = input.attribution?.touch ?? null;
   const { items, subtotal, discountTotal, settings } = await priceCart(input.lines);
   const rates = await ratesForCart(input.lines, input.shipping.areaId);
   const rate = rates.find((r) => r.courier_code === input.courier.code && r.courier_service_code === input.courier.serviceCode);
@@ -184,8 +188,11 @@ export async function createOrder(input: CreateOrderInput) {
           `INSERT INTO orders (order_number, public_token, customer_id, status, subtotal, discount_total,
               coupon_id, coupon_code, coupon_discount, shipping_cost, shipping_discount, total,
               courier_code, courier_service_code, courier_name, courier_service_name, shipping_etd,
-              recipient_name, recipient_phone, address, area_id, area_name, postal_code, notes, ab_variant, visitor_id)
-           VALUES (?, ?, ?, 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              recipient_name, recipient_phone, address, area_id, area_name, postal_code, notes, ab_variant, visitor_id,
+              session_id, channel, utm_source, utm_medium, utm_campaign, utm_term, utm_content, click_id_type,
+              referrer_host, landing_path, attribution)
+           VALUES (?, ?, ?, 'pending_payment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                   ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             number, token, customerId, subtotal, discountTotal,
             quote?.coupon.id ?? null, quote?.coupon.code ?? null, couponDiscount, rate.price, shippingDiscount, total,
@@ -193,6 +200,9 @@ export async function createOrder(input: CreateOrderInput) {
             input.shipping.recipientName.trim(), recipientPhone, input.shipping.address.trim(),
             input.shipping.areaId, input.shipping.areaName, input.shipping.postalCode, input.shipping.notes,
             input.abVariant, input.visitorId,
+            input.attribution?.sessionId ?? null, input.attribution?.channel ?? null,
+            at?.source ?? null, at?.medium ?? null, at?.campaign ?? null, at?.term ?? null, at?.content ?? null,
+            at?.clickIdType ?? null, at?.referrerHost ?? null, at?.landingPath ?? null, input.attribution?.json ?? null,
           ]
         );
         orderId = r.insertId;

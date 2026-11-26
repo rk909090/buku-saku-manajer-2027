@@ -57,6 +57,7 @@ import type { HeadlineVariant } from "@/lib/content";
 import { AB_EXPERIMENT, AB_QUERY_PARAM } from "@/lib/ab-config";
 import { buildStructuredData } from "@/lib/structured-data";
 import { GoogleTag } from "@/components/google-tag";
+import { JourneyTracker } from "@/components/journey-tracker";
 import { CartLink } from "@/components/shop/cart-link";
 import { BOOK_FACTS } from "@/lib/seo";
 import { getLandingPromo } from "@/lib/shop/landing-promo";
@@ -94,6 +95,7 @@ export async function LandingPage({ variant }: { variant: HeadlineVariant }) {
   return (
     <>
       <GoogleTag />
+      <JourneyTracker abVariant={variant.id} />
       {/* Structured data: WebSite, WebPage, Organization, Person, Book/Product, FAQPage */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       {/* Data varian A/B di dataLayer (untuk GTM). GA4 memakai gtag('set') di <head>. */}
@@ -188,7 +190,7 @@ function SiteHeader() {
 
 function Hero({ variant, promo }: { variant: HeadlineVariant; promo: LandingPromo | null }) {
   return (
-    <section className="hero-bg relative overflow-hidden text-white">
+    <section data-section="hero" className="hero-bg relative overflow-hidden text-white">
       <Container className="grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 lg:py-24">
         <div className="text-center lg:text-left">
           <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
@@ -238,7 +240,7 @@ function Hero({ variant, promo }: { variant: HeadlineVariant; promo: LandingProm
 
 function Reality() {
   return (
-    <section className="py-16 sm:py-24">
+    <section data-section="masalah" className="py-16 sm:py-24">
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <Eyebrow>{reality.eyebrow}</Eyebrow>
@@ -271,7 +273,7 @@ function Reality() {
 
 function Story() {
   return (
-    <section className="border-t border-navy-900/8 bg-white py-16 sm:py-24">
+    <section data-section="cerita" className="border-t border-navy-900/8 bg-white py-16 sm:py-24">
       <Container>
         <div className="mx-auto max-w-3xl space-y-6 text-[1.075rem] leading-[1.85] text-ink/90 [&_strong]:text-navy-900">
           {storyIntro.map((p, i) => (
@@ -322,7 +324,7 @@ function Story() {
 
 function Audience() {
   return (
-    <section className="bg-cream py-16 sm:py-24">
+    <section data-section="untuk-siapa" className="bg-cream py-16 sm:py-24">
       <Container>
         <div className="text-center">
           <SectionHeading className="uppercase">{audience.heading}</SectionHeading>
@@ -360,7 +362,7 @@ function Audience() {
 
 function AboutBook() {
   return (
-    <section className="hero-bg relative overflow-hidden py-16 text-white sm:py-24">
+    <section data-section="tentang-buku" className="hero-bg relative overflow-hidden py-16 text-white sm:py-24">
       <Container className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div className="relative mx-auto w-full max-w-md">
           <div aria-hidden="true" className="absolute inset-0 rounded-full bg-gold-500/20 blur-3xl" />
@@ -447,7 +449,7 @@ const insideBookTopics: PreviewTopic[] = [
 
 function InsideBook() {
   return (
-    <section id="intip-isi" className="scroll-mt-20 bg-navy-950 py-16 text-white sm:py-24">
+    <section data-section="intip-isi" id="intip-isi" className="scroll-mt-20 bg-navy-950 py-16 text-white sm:py-24">
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <Eyebrow tone="dark">Intip Isi Buku</Eyebrow>
@@ -468,7 +470,7 @@ function InsideBook() {
 
 function Chapters() {
   return (
-    <section className="py-16 sm:py-24">
+    <section data-section="daftar-bab" className="py-16 sm:py-24">
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <Eyebrow>{chaptersIntro.eyebrow}</Eyebrow>
@@ -538,7 +540,7 @@ function Chapters() {
 
 function Readers() {
   return (
-    <section className="bg-cream py-16 sm:py-24">
+    <section data-section="pembaca" className="bg-cream py-16 sm:py-24">
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <Eyebrow>{readers.eyebrow}</Eyebrow>
@@ -565,7 +567,7 @@ function Readers() {
 
 function Outcomes() {
   return (
-    <section className="py-16 sm:py-24">
+    <section data-section="manfaat" className="py-16 sm:py-24">
       <Container>
         <div className="mx-auto max-w-4xl text-center">
           <h2 className="font-display text-2xl leading-tight font-bold tracking-tight text-navy-900 uppercase sm:text-4xl">
@@ -600,7 +602,7 @@ function Outcomes() {
 
 function Author() {
   return (
-    <section className="overflow-x-clip bg-cream py-16 sm:py-24">
+    <section data-section="penulis" className="overflow-x-clip bg-cream py-16 sm:py-24">
       <Container className="grid items-start gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
         <div className="relative mx-auto w-full max-w-md lg:sticky lg:top-24">
           <div aria-hidden="true" className="absolute -inset-3 translate-x-4 translate-y-4 rounded-[2rem] border-2 border-gold-500/60" />
@@ -655,7 +657,7 @@ function Author() {
 
 function Institute() {
   return (
-    <section className="bg-navy-950 pt-16 pb-10 text-white sm:pt-24">
+    <section data-section="institut" className="bg-navy-950 pt-16 pb-10 text-white sm:pt-24">
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <div className="mx-auto inline-block rounded-2xl bg-white px-5 py-3">
@@ -706,7 +708,7 @@ function Institute() {
 
 function Reviews() {
   return (
-    <section className="bg-navy-950 pt-10 pb-16 text-white sm:pb-24">
+    <section data-section="testimoni" className="bg-navy-950 pt-10 pb-16 text-white sm:pb-24">
       <Container>
         <SectionHeading tone="dark" className="text-center">
           {reviews.heading}
@@ -740,7 +742,7 @@ function Reviews() {
 
 function Offer({ promo }: { promo: LandingPromo | null }) {
   return (
-    <section id="beli" className="scroll-mt-20 py-16 sm:py-24">
+    <section data-section="penawaran" id="beli" className="scroll-mt-20 py-16 sm:py-24">
       <Container>
         <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] bg-navy-900 text-white shadow-2xl">
           <div aria-hidden="true" className="absolute -top-24 -left-24 size-72 rounded-full bg-gold-500/20 blur-3xl" />
@@ -791,7 +793,7 @@ function Offer({ promo }: { promo: LandingPromo | null }) {
 
 function Faq({ faqs }: { faqs: FaqItem[] }) {
   return (
-    <section className="bg-cream py-16 sm:py-24">
+    <section data-section="faq" className="bg-cream py-16 sm:py-24">
       <Container className="max-w-3xl">
         <SectionHeading className="text-center">{faqHeading}</SectionHeading>
         <GoldRule className="mx-auto mt-5" />
@@ -825,7 +827,7 @@ function Faq({ faqs }: { faqs: FaqItem[] }) {
 
 function Closing({ promo }: { promo: LandingPromo | null }) {
   return (
-    <section className="hero-bg py-16 text-center text-white sm:py-24">
+    <section data-section="penutup" className="hero-bg py-16 text-center text-white sm:py-24">
       <Container className="max-w-3xl">
         <SectionHeading tone="dark">{closing.heading}</SectionHeading>
         <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-white/75">{closing.lead}</p>
