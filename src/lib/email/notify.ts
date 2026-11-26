@@ -4,7 +4,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { getPool } from "@/lib/db";
 import { SITE_ORIGIN } from "@/lib/shop/env";
 import { getSettings, shipConfigOf } from "@/lib/shop/settings";
-import { waLink } from "@/lib/whatsapp";
+import { orderGreeting, waLink } from "@/lib/whatsapp";
 import { sendEmail } from "@/lib/email/send";
 import { CUSTOMER_EMAIL_LABEL, renderAdminNewOrder, renderCustomerEmail, shipInfo, type CustomerEmailKind, type EmailOrder } from "@/lib/email/templates";
 
@@ -89,7 +89,8 @@ export async function loadEmailOrder(orderId: number): Promise<EmailOrder | null
     shippingCost: Number(o.shipping_cost),
     shippingDiscount: Number(o.shipping_discount || 0),
     total: Number(o.total),
-    whatsappUrl: waLink(settings.whatsapp_number),
+    // Sapaan dari pengaturan + nomor pesanan, agar CS langsung tahu pesanan yang ditanyakan.
+    whatsappUrl: waLink(settings.whatsapp_number, orderGreeting(settings.whatsapp_greeting, String(o.order_number))),
     ship: shipInfo(o.paid_at || null, shipConfigOf(settings)),
   };
 }

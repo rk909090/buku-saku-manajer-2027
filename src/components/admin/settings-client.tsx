@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarClock, CheckCircle2, CircleAlert, CreditCard, Mail, MessageCircle, PlugZap, Plus, Trash2, Truck, type LucideIcon } from "lucide-react";
 import { adminFetch } from "@/components/admin/api";
-import { formatWhatsapp, normalizeWhatsapp, waLink } from "@/lib/whatsapp";
+import { formatWhatsapp, MAX_WA_GREETING, normalizeGreeting, normalizeWhatsapp, orderGreeting, waLink } from "@/lib/whatsapp";
 import { parseChannels, VA_CHANNELS } from "@/lib/shop/payment-channels";
 import { AreaCombobox, type AreaValue } from "@/components/shop/area-combobox";
 import {
@@ -20,7 +20,7 @@ import {
 } from "@/lib/shop/shipping-schedule";
 import { Alert, Badge, Button, Card, Field, inputCls, Loading, PageHeader } from "@/components/admin/ui";
 
-type Settings = { origin_area_id: string; origin_area_name: string; origin_postal_code: string; couriers: string; max_qty_per_item: number; min_order_total: number; notify_emails: string; notify_on_pending: number; whatsapp_number: string; payment_channels: string; ship_cutoff: string; ship_holidays: string };
+type Settings = { origin_area_id: string; origin_area_name: string; origin_postal_code: string; couriers: string; max_qty_per_item: number; min_order_total: number; notify_emails: string; notify_on_pending: number; whatsapp_number: string; whatsapp_greeting: string; payment_channels: string; ship_cutoff: string; ship_holidays: string };
 type Resp = { settings: Settings; defaultCouriers: string; integrations: { biteship: string; xendit: string; xenditWebhook: string; resend: string } };
 
 /** Kode kurir dari dokumentasi Biteship (couriers overview). */
@@ -163,8 +163,8 @@ export function SettingsClient() {
             <PaymentChannelsCard initial={d.settings.payment_channels} minTotal={d.settings.min_order_total} />
           </SettingsSection>
 
-          <SettingsSection id="kontak" title="Kontak WhatsApp" description="Nomor untuk tombol chat di landing page, checkout, dan email.">
-            <WhatsappCard initial={d.settings.whatsapp_number} />
+          <SettingsSection id="kontak" title="Kontak WhatsApp" description="Nomor dan teks sapaan untuk tombol chat di landing page, checkout, dan email.">
+            <WhatsappCard initial={d.settings.whatsapp_number} initialGreeting={d.settings.whatsapp_greeting || ""} />
           </SettingsSection>
 
           <SettingsSection id="notifikasi" title="Notifikasi email" description="Penerima notifikasi pesanan untuk admin, email uji, dan pratinjau desain email.">
@@ -517,25 +517,37 @@ function NotificationCard({
   );
 }
 
-function WhatsappCard({ initial }: { initial: string }) {
+const GREETING_EXAMPLE = "Halo Human Plus, saya ingin bertanya tentang Buku Saku Manajer.";
+
+function WhatsappCard({ initial, initialGreeting }: { initial: string; initialGreeting: string }) {
   const [saved, setSaved] = useState(initial);
   const [value, setValue] = useState(initial);
+  const [savedGreeting, setSavedGreeting] = useState(initialGreeting);
+  const [greeting, setGreeting] = useState(initialGreeting);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "green" | "red"; text: string } | null>(null);
   const preview = normalizeWhatsapp(value);
+  const cleanGreeting = normalizeGreeting(greeting);
+  const tooLong = cleanGreeting.length > MAX_WA_GREETING;
+  const dirty = (preview && preview !== saved) || cleanGreeting !== savedGreeting;
+  // Tautan uji memakai isi formulir saat ini (boleh dicoba sebelum disimpan).
+  const testNumber = preview || saved;
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (tooLong) return setMsg({ tone: "red", text: `Teks sapaan maksimal ${MAX_WA_GREETING} karakter.` });
     setBusy(true);
     setMsg(null);
     try {
       const j = await adminFetch<{ settings: Settings }>("/api/admin/settings/contact", {
         method: "PUT",
-        body: JSON.stringify({ whatsapp_number: value }),
+        body: JSON.stringify({ whatsapp_number: value, whatsapp_greeting: greeting }),
       });
       setSaved(j.settings.whatsapp_number);
       setValue(j.settings.whatsapp_number);
-      setMsg({ tone: "green", text: "Nomor WhatsApp tersimpan dan langsung dipakai di website & email" });
+      setSavedGreeting(j.settings.whatsapp_greeting || "");
+      setGreeting(j.settings.whatsapp_greeting || "");
+      setMsg({ tone: "green", text: "Kontak WhatsApp tersimpan dan langsung dipakai di website & email" });
     } catch (e2) {
       setMsg({ tone: "red", text: (e2 as Error).message });
     } finally {
@@ -545,7 +557,7 @@ function WhatsappCard({ initial }: { initial: string }) {
 
   return (
     <Card>
-      <form onSubmit={save} className="space-y-4">
+      <form onSubmit={save} className="space-y-5">
         {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
         <Field
           label="Nomor WhatsApp toko"
@@ -562,7 +574,7 @@ function WhatsappCard({ initial }: { initial: string }) {
             required
           />
         </Field>
-        <p className="text-xs text-slate-500">
+        <p className="-mt-3 text-xs text-slate-500">
           {preview ? (
             <>
               Akan disimpan sebagai <b className="text-slate-800">{formatWhatsapp(preview)}</b>
@@ -571,16 +583,70 @@ function WhatsappCard({ initial }: { initial: string }) {
             <span className="text-rose-700">Nomor belum valid (10–15 digit)</span>
           )}
         </p>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" loading={busy} disabled={!preview || preview === saved}>
-            Simpan nomor
+
+        <div className="border-t border-slate-100 pt-5">
+          <div className="mb-1.5 flex items-end justify-between gap-3">
+            <label htmlFor="wa-greeting" className="text-sm font-medium text-slate-700">
+              Teks sapaan (pesan awal)
+            </label>
+            <span className={`text-xs tabular-nums ${tooLong ? "font-semibold text-rose-700" : "text-slate-500"}`}>
+              {cleanGreeting.length}/{MAX_WA_GREETING}
+            </span>
+          </div>
+          <textarea
+            id="wa-greeting"
+            rows={3}
+            className={inputCls}
+            value={greeting}
+            onChange={(e) => setGreeting(e.target.value)}
+            placeholder={GREETING_EXAMPLE}
+            aria-describedby="wa-greeting-hint"
+          />
+          <p id="wa-greeting-hint" className="mt-1.5 text-xs leading-relaxed text-slate-500">
+            Teks ini sudah terisi di kolom ketik saat pembeli membuka chat — pembeli tinggal menekan kirim (masih bisa mengubahnya).
+            Kosongkan bila tidak ingin memakai teks awal.
+            {!greeting.trim() && (
+              <>
+                {" "}
+                <button type="button" onClick={() => setGreeting(GREETING_EXAMPLE)} className="font-semibold text-slate-700 underline underline-offset-2 hover:text-slate-900">
+                  Pakai contoh
+                </button>
+              </>
+            )}
+          </p>
+
+          {/* Pratinjau: seperti pesan yang akan muncul di WhatsApp */}
+          {cleanGreeting && !tooLong && (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <WaPreview title="Dari tombol chat website & checkout" text={cleanGreeting} />
+              <WaPreview title="Dari email pesanan (otomatis + nomor pesanan)" text={orderGreeting(cleanGreeting, "BSM261126ABC123")} />
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-4">
+          <Button type="submit" loading={busy} disabled={!preview || !dirty || tooLong}>
+            Simpan kontak
           </Button>
-          <a href={waLink(saved)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-emerald-700 hover:underline">
-            Coba buka WhatsApp ({formatWhatsapp(saved)}) ↗
+          <a href={waLink(testNumber, tooLong ? "" : cleanGreeting)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-emerald-700 hover:underline">
+            Coba buka WhatsApp ({formatWhatsapp(testNumber)}) ↗
           </a>
+          {dirty && <span className="text-xs text-amber-700">Ada perubahan yang belum disimpan</span>}
         </div>
       </form>
     </Card>
+  );
+}
+
+/** Pratinjau gelembung pesan bergaya WhatsApp (baris baru dipertahankan). */
+function WaPreview({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="rounded-xl bg-[#efeae2] p-3">
+      <p className="mb-2 text-[11px] font-semibold tracking-wide text-slate-600 uppercase">{title}</p>
+      <div className="ml-auto w-fit max-w-[95%] rounded-lg rounded-tr-sm bg-[#d9fdd3] px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap text-slate-900 shadow-sm">
+        {text}
+      </div>
+    </div>
   );
 }
 

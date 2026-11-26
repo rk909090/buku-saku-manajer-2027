@@ -23,6 +23,8 @@ export type ShopSettings = {
   notify_on_pending: number;
   /** Nomor WhatsApp toko (format internasional tanpa +, mis. 6287840848566). */
   whatsapp_number: string;
+  /** Teks sapaan yang sudah terisi saat pembeli membuka chat WhatsApp toko. Kosong = tanpa teks. */
+  whatsapp_greeting: string;
   /** Kanal pembayaran Xendit yang ditampilkan (kode dipisah koma). Kosong = semua metode yang aktif di akun. */
   payment_channels: string;
   /** Jam batas pengiriman "HH:MM" (WIB): pembayaran pada/di atas jam ini dikirim keesokan harinya. */
@@ -47,6 +49,7 @@ const DEFAULTS: ShopSettings = {
   notify_emails: "",
   notify_on_pending: 0,
   whatsapp_number: DEFAULT_WHATSAPP,
+  whatsapp_greeting: "",
   payment_channels: "",
   ship_cutoff: DEFAULT_CUTOFF,
   ship_holidays: "[]",

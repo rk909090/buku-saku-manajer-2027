@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { withAdmin } from "@/lib/shop/http";
 import { getSettings, shipConfigOf } from "@/lib/shop/settings";
-import { waLink } from "@/lib/whatsapp";
+import { orderGreeting, waLink } from "@/lib/whatsapp";
 import { renderAdminNewOrder, renderCustomerEmail, renderTestEmail, sampleOrder, shipInfo, type CustomerEmailKind } from "@/lib/email/templates";
 
 const KINDS: CustomerEmailKind[] = ["created", "paid", "processing", "shipped", "tracking", "completed", "cancelled", "expired"];
@@ -13,7 +13,11 @@ export async function GET(request: NextRequest) {
     const settings = await getSettings();
     const sample = sampleOrder();
     // Data contoh, tetapi jam batas & libur memakai pengaturan toko (contoh dibayar "sekarang").
-    const o = { ...sample, whatsappUrl: waLink(settings.whatsapp_number), ship: shipInfo(sample.paidAt, shipConfigOf(settings)) };
+    const o = {
+      ...sample,
+      whatsappUrl: waLink(settings.whatsapp_number, orderGreeting(settings.whatsapp_greeting, sample.orderNumber)),
+      ship: shipInfo(sample.paidAt, shipConfigOf(settings)),
+    };
     const m =
       kind === "admin"
         ? renderAdminNewOrder(o, true)

@@ -60,7 +60,7 @@ import { GoogleTag } from "@/components/google-tag";
 import { CartLink } from "@/components/shop/cart-link";
 import { BOOK_FACTS } from "@/lib/seo";
 import { getLandingPromo } from "@/lib/shop/landing-promo";
-import { getPublicWhatsapp } from "@/lib/shop/public-contact";
+import { getPublicContact } from "@/lib/shop/public-contact";
 import { getPublicShipConfig } from "@/lib/shop/public-shipping";
 import { cutoffNote } from "@/lib/shop/shipping-schedule";
 import { waLink } from "@/lib/whatsapp";
@@ -84,7 +84,7 @@ export async function LandingPage({ variant }: { variant: HeadlineVariant }) {
   // Diskon produk (cache ±1 menit + invalidasi saat admin mengubah diskon) — ikut di HTML statis.
   // Nomor WhatsApp dari pengaturan admin (cache ±1 menit, diperbarui segera saat disimpan).
   // Jam batas pengiriman untuk FAQ (cache ±1 menit, diperbarui segera saat admin menyimpan).
-  const [promo, whatsapp, shipCfg] = await Promise.all([getLandingPromo(), getPublicWhatsapp(), getPublicShipConfig()]);
+  const [promo, contact, shipCfg] = await Promise.all([getLandingPromo(), getPublicContact(), getPublicShipConfig()]);
   const faqs = buildFaqs(cutoffNote(shipCfg));
   // "<" di-escape agar teks JSON tidak bisa menutup tag <script>.
   const deal = currentDeal(promo, null); // diskon yang berlaku saat data diambil server
@@ -118,7 +118,7 @@ export async function LandingPage({ variant }: { variant: HeadlineVariant }) {
       </main>
       <SiteFooter />
       <MobileCtaBar promo={promo} />
-      <WhatsAppButton href={waLink(whatsapp)} />
+      <WhatsAppButton href={waLink(contact.whatsapp, contact.greeting)} />
       <AbTracker variant={variant.id} />
     </>
   );

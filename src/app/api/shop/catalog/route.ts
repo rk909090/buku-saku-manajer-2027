@@ -39,6 +39,7 @@ export async function GET() {
       maxQty: settings.max_qty_per_item,
       minOrderTotal: settings.min_order_total,
       whatsapp: settings.whatsapp_number,
+      whatsappGreeting: settings.whatsapp_greeting,
       // Nama bank VA yang ditampilkan Xendit (kosong = semua metode yang aktif).
       paymentBanks: parseChannels(settings.payment_channels).map(channelLabel),
       couponsEnabled,
