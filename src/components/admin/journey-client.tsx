@@ -454,8 +454,10 @@ function milestones(steps: Step[]) {
   return steps.filter((s) => keys.includes(s.event) && !seen.has(s.event) && seen.add(s.event));
 }
 
-function SessionRow({ r }: { r: Data["recent"][number] }) {
+function SessionRow({ r: raw }: { r: Data["recent"][number] }) {
   const [open, setOpen] = useState(false);
+  // Event dikirim bersamaan bisa tiba tidak berurutan — "Datang" selalu ditampilkan pertama.
+  const r = { ...raw, steps: [...raw.steps.filter((s) => s.event === "session_start"), ...raw.steps.filter((s) => s.event !== "session_start")] };
   const start = r.steps[0] ? +new Date(r.steps[0].at) : +new Date(r.startedAt);
   const ms = milestones(r.steps);
   const sectionsSeen = r.steps.filter((s) => s.event === "section_view").length;
