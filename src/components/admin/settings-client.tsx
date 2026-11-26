@@ -55,6 +55,16 @@ export function SettingsClient() {
       .catch((e) => setMsg({ tone: "red", text: (e as Error).message }));
   }, []);
 
+  // Tautan langsung ke bagian (mis. /admin/settings#kontak): isi baru ada setelah data dimuat,
+  // jadi gulir ke bagian itu sekali setelah tampil.
+  const loaded = !!d;
+  useEffect(() => {
+    if (!loaded) return;
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (!id) return;
+    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: "start" }));
+  }, [loaded]);
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!area) return setMsg({ tone: "red", text: "Pilih lokasi asal pengiriman dari daftar" });
